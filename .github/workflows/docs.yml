@@ -30,15 +30,21 @@ jobs:
           BACKGROUND: light
           COLORSCHEME: github
 
-      - name: Rename to index.html
+      - name: Create index.html
         run: |
           cd build
-          for f in *.html; do
-            if [ "$f" != "index.html" ]; then
-              cp "$f" index.html
-              break
+          if [ -f claudeterm.html ]; then
+            cp claudeterm.html index.html
+          elif [ -f claudeterm.txt.html ]; then
+            cp claudeterm.txt.html index.html
+          else
+            # Fall back to first HTML file found
+            first=$(ls *.html 2>/dev/null | head -1)
+            if [ -n "$first" ] && [ "$first" != "index.html" ]; then
+              cp "$first" index.html
             fi
-          done
+          fi
+          ls -la
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
