@@ -260,6 +260,38 @@ function! claudeterm#set_model(model) abort
 endfunction
 
 " ---------------------------------------------------------------------------
+" Worktree
+" ---------------------------------------------------------------------------
+
+function! claudeterm#worktree(name, bang) abort
+  call s:kill_term_if_alive()
+
+  let l:cmd = s:get('command', 'claude') . ' --worktree'
+  if !empty(a:name)
+    let l:cmd .= ' ' . a:name
+  endif
+  let l:use_tmux = a:bang || s:get('worktree_tmux', 0)
+  if l:use_tmux
+    let l:cmd .= ' --tmux'
+  endif
+
+  let l:cwd = s:get('use_git_root', 1) ? s:git_root() : getcwd()
+  let l:saved_dir = getcwd()
+  execute 'lcd ' . fnameescape(l:cwd)
+  call s:open_split()
+  execute 'terminal ++curwin ++close ' . l:cmd
+  execute 'lcd ' . fnameescape(l:saved_dir)
+
+  let s:term_bufnr = bufnr('%')
+  let s:term_winid = win_getid()
+
+  call s:configure_term_window()
+  call s:start_reload_timer()
+  call claudeterm#hooks#fire('Worktree')
+  call s:focus_term()
+endfunction
+
+" ---------------------------------------------------------------------------
 " Verbose toggle
 " ---------------------------------------------------------------------------
 
@@ -444,7 +476,7 @@ function! claudeterm#complete(arglead, cmdline, cursorpos) abort
 
   " Second word: subcommand
   if l:nparts <= 2
-    let l:subs = ['resume', 'continue', 'new', 'kill', 'pr',
+    let l:subs = ['resume', 'continue', 'new', 'kill', 'pr', 'worktree',
           \ 'plan', 'fast', 'mode', 'zoom', 'position', 'send', 'chat',
           \ 'model', 'verbose', 'doctor', 'version']
     return filter(copy(l:subs), 'v:val =~# "^" . a:arglead')

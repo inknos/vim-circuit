@@ -7,6 +7,7 @@ Another hides it. Your session persists across toggles.
 
 - **Persistent terminal** with automatic session resume via `claude --continue`
 - **Session switching**: resume, continue, new, from-PR -- all tab-completable
+- **Worktree support**: `claude --worktree` integration with optional tmux mode
 - **Mode control**: plan, auto, default, acceptEdits via `--permission-mode`
 - **Model switching**: sonnet, opus, haiku, or any full model name
 - **Zoom toggle**: maximize/restore the Claude split (tmux-style)
@@ -52,6 +53,8 @@ Then run `:helptags ALL` in Vim.
 :CTerm plan     " Toggle plan mode (or <leader>cmp)
 :CTerm fast     " Toggle fast mode (or <leader>cmf)
 :CTerm model opus " Switch to opus (or <leader>cmo)
+:CTerm worktree   " Launch in a git worktree (or <leader>cw)
+:CTworktree!      " Launch worktree in tmux pane
 ```
 
 ## Commands
@@ -64,6 +67,7 @@ Then run `:helptags ALL` in Vim.
 | `:CTerm new` | `:CTnew` | `<leader>cn` | New session |
 | `:CTerm kill` | `:CTkill` | `<leader>ck` | Kill terminal |
 | `:CTerm pr` | `:CTpr` | `<leader>cp` | Resume from PR |
+| `:CTerm worktree` | `:CTworktree` | `<leader>cw` | Launch in git worktree |
 | `:CTerm plan` | `:CTplan` | `<leader>cmp` | Toggle plan mode (sends `/plan`) |
 | `:CTerm fast` | `:CTfast` | `<leader>cmf` | Toggle fast mode (sends `/fast`) |
 | `:CTerm zoom` | `:CTzoom` | `<leader>cz` | Zoom toggle |
@@ -83,6 +87,7 @@ let g:claudeterm_position = 'bottom'       " right (default), left, top, bottom
 let g:claudeterm_split_ratio = 0.3         " fraction of screen (default 0.4)
 let g:claudeterm_permission_mode = 'plan'  " default mode for new sessions
 let g:claudeterm_model = 'sonnet'          " default model
+let g:claudeterm_worktree_tmux = 1        " always use tmux for worktree
 let g:claudeterm_map_keys = 0              " disable all default keymaps
 ```
 
@@ -96,7 +101,7 @@ autocmd User ClaudeTermReload echohl WarningMsg | echo "Buffers reloaded" | echo
 ```
 
 Events: `Open`, `ToggleShow`, `ToggleHide`, `Kill`, `ZoomIn`, `ZoomOut`,
-`Reload`, `ModeChange`, `SessionChange`.
+`Reload`, `ModeChange`, `SessionChange`, `Worktree`.
 
 See `:help claudeterm-hooks` for details.
 

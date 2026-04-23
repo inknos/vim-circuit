@@ -16,8 +16,9 @@ CONTENTS                                              *claudeterm-contents*
      5.2 Mode Control .................... |claudeterm-modes|
      5.3 Window Control .................. |claudeterm-window|
      5.4 Code Context .................... |claudeterm-context|
-     5.5 Model & Config .................. |claudeterm-model|
-     5.6 Utility ......................... |claudeterm-utility|
+     5.5 Worktree ....................... |claudeterm-worktree|
+     5.6 Model & Config .................. |claudeterm-model|
+     5.7 Utility ......................... |claudeterm-utility|
   6. Keymaps .............................. |claudeterm-keymaps|
      6.1 Normal Mode ..................... |claudeterm-keymaps-normal|
      6.2 Visual Mode ..................... |claudeterm-keymaps-visual|
@@ -180,7 +181,22 @@ no restart needed. If no session is running, one is opened first.
                         as context. Opens the terminal if not visible.
 
 ------------------------------------------------------------------------------
-5.5 Model & Config                                    *claudeterm-model*
+5.5 Worktree                                         *claudeterm-worktree*
+
+                                                      *:CTworktree*
+:CTworktree [name]      Launch Claude in a git worktree via
+:CTerm worktree [name]  `claude --worktree`. If [name] is given, it is
+                        passed as the worktree argument. Claude creates
+                        an isolated worktree for the task, keeping your
+                        working tree clean.
+
+:CTworktree! [name]     With a bang, adds `--tmux` so Claude runs the
+                        worktree session in a tmux pane rather than
+                        inline. Also triggered when
+                        |g:claudeterm_worktree_tmux| is `1`.
+
+------------------------------------------------------------------------------
+5.6 Model & Config                                    *claudeterm-model*
 
                                                       *:CTmodel*
 :CTerm model {name}     Kill the current session and restart with the given
@@ -193,7 +209,7 @@ no restart needed. If no session is running, one is opened first.
 :CTverbose              with or without `--verbose`.
 
 ------------------------------------------------------------------------------
-5.6 Utility                                          *claudeterm-utility*
+5.7 Utility                                          *claudeterm-utility*
 
                                                       *:CTdoctor*
 :CTerm doctor           Run `claude doctor` and display the health check
@@ -223,6 +239,7 @@ variable.
   <leader>cz       Zoom toggle     |g:claudeterm_map_zoom|
   <leader>ch       Chat            |g:claudeterm_map_chat|
   <leader>cv       Verbose toggle  |g:claudeterm_map_verbose|
+  <leader>cw       Worktree        |g:claudeterm_map_worktree|
   <leader>cmp      Mode: plan      |g:claudeterm_map_mode_plan|
   <leader>cmf      Mode: fast      |g:claudeterm_map_mode_fast|
   <leader>cms      Model: sonnet   |g:claudeterm_map_model_sonnet|
@@ -254,9 +271,10 @@ These keymaps are active when the cursor is inside any terminal buffer.
 `:CTerm` supports context-aware tab-completion:
 
   :CTerm <Tab>           Completes subcommands: `resume`, `continue`,
-                         `new`, `kill`, `pr`, `plan`, `fast`, `mode`,
-                         `zoom`, `position`, `send`, `chat`, `model`,
-                         `verbose`, `doctor`, `version`.
+                         `new`, `kill`, `pr`, `worktree`, `plan`,
+                         `fast`, `mode`, `zoom`, `position`, `send`,
+                         `chat`, `model`, `verbose`, `doctor`,
+                         `version`.
 
   :CTerm mode <Tab>      Completes: `plan`, `fast`, `normal`.
 
@@ -287,6 +305,7 @@ Available events:
   ClaudeTermReload        One or more buffers auto-reloaded
   ClaudeTermModeChange    Permission mode changed
   ClaudeTermSessionChange Session switched (resume/continue/new/pr)
+  ClaudeTermWorktree      Worktree session launched
 
 ==============================================================================
 9. Configuration                               *claudeterm-configuration*
@@ -345,6 +364,13 @@ g:claudeterm_model            String (default: `''`)
 g:claudeterm_extra_args       String (default: `''`)
                               Extra CLI arguments appended to every `claude`
                               invocation. Example: `'--add-dir /tmp/data'`.
+
+                                                *g:claudeterm_worktree_tmux*
+g:claudeterm_worktree_tmux    Number (default: `0`)
+                              When `1`, `:CTworktree` always passes `--tmux`
+                              to `claude --worktree`, running the session in
+                              a tmux pane instead of inside the Vim terminal.
+                              Can also be toggled per-call with `:CTworktree!`.
 
 ------------------------------------------------------------------------------
 9.2 Auto-Reload                                *claudeterm-config-reload*

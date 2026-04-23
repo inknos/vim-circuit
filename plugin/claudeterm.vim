@@ -24,6 +24,7 @@ let g:claudeterm_use_git_root     = get(g:, 'claudeterm_use_git_root', 1)
 let g:claudeterm_permission_mode  = get(g:, 'claudeterm_permission_mode', '')
 let g:claudeterm_model            = get(g:, 'claudeterm_model', '')
 let g:claudeterm_extra_args       = get(g:, 'claudeterm_extra_args', '')
+let g:claudeterm_worktree_tmux    = get(g:, 'claudeterm_worktree_tmux', 0)
 
 let g:claudeterm_auto_reload      = get(g:, 'claudeterm_auto_reload', 1)
 let g:claudeterm_reload_interval  = get(g:, 'claudeterm_reload_interval', 1000)
@@ -51,6 +52,7 @@ let g:claudeterm_map_mode_fast    = get(g:, 'claudeterm_map_mode_fast', '<leader
 let g:claudeterm_map_model_sonnet = get(g:, 'claudeterm_map_model_sonnet', '<leader>cms')
 let g:claudeterm_map_model_opus   = get(g:, 'claudeterm_map_model_opus', '<leader>cmo')
 let g:claudeterm_map_model_haiku  = get(g:, 'claudeterm_map_model_haiku', '<leader>cmh')
+let g:claudeterm_map_worktree    = get(g:, 'claudeterm_map_worktree', '<leader>cw')
 
 " ---------------------------------------------------------------------------
 " Commands
@@ -76,6 +78,7 @@ command! -nargs=0 CTdoctor   call claudeterm#doctor()
 command! -nargs=0 CTversion  call claudeterm#version()
 command! -nargs=0 CTsend     call claudeterm#send_selection()
 command! -nargs=0 CTchat     call claudeterm#chat()
+command! -nargs=? -bang CTworktree call claudeterm#worktree(<q-args>, <bang>0)
 
 function! s:dispatch(...) abort
   if a:0 == 0
@@ -123,6 +126,8 @@ function! s:dispatch(...) abort
     else
       echoerr 'claudeterm: model requires an argument (sonnet/opus/haiku or full model name)'
     endif
+  elseif l:cmd ==# 'worktree'
+    call claudeterm#worktree(a:0 >= 2 ? a:2 : '', 0)
   elseif l:cmd ==# 'position'
     if a:0 >= 2
       call claudeterm#set_position(a:2)
@@ -161,6 +166,9 @@ if g:claudeterm_map_keys
   " Mode control (sends /plan or /fast slash commands to the session)
   execute 'nnoremap <silent> ' . g:claudeterm_map_mode_plan . " :call claudeterm#set_mode('plan')<CR>"
   execute 'nnoremap <silent> ' . g:claudeterm_map_mode_fast . " :call claudeterm#set_mode('fast')<CR>"
+
+  " Worktree
+  execute 'nnoremap <silent> ' . g:claudeterm_map_worktree    . " :call claudeterm#worktree('', 0)<CR>"
 
   " Model switching
   execute 'nnoremap <silent> ' . g:claudeterm_map_model_sonnet . " :call claudeterm#set_model('sonnet')<CR>"
