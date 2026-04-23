@@ -24,8 +24,6 @@ let g:claudeterm_use_git_root     = get(g:, 'claudeterm_use_git_root', 1)
 let g:claudeterm_permission_mode  = get(g:, 'claudeterm_permission_mode', '')
 let g:claudeterm_model            = get(g:, 'claudeterm_model', '')
 let g:claudeterm_extra_args       = get(g:, 'claudeterm_extra_args', '')
-let g:claudeterm_session_strategy = get(g:, 'claudeterm_session_strategy', 'branch')
-let g:claudeterm_open_strategy    = get(g:, 'claudeterm_open_strategy', 'resume')
 
 let g:claudeterm_auto_reload      = get(g:, 'claudeterm_auto_reload', 1)
 let g:claudeterm_reload_interval  = get(g:, 'claudeterm_reload_interval', 1000)

@@ -38,33 +38,6 @@ function! s:git_root() abort
   return l:root
 endfunction
 
-function! s:git_branch() abort
-  return trim(system('git rev-parse --abbrev-ref HEAD 2>/dev/null'))
-endfunction
-
-function! s:session_id() abort
-  let l:strategy = s:get('session_strategy', 'branch')
-  if l:strategy ==# 'none'
-    return ''
-  endif
-  let l:base = getcwd()
-  if l:strategy ==# 'branch'
-    let l:branch = s:git_branch()
-    if !empty(l:branch)
-      let l:base .= '-' . l:branch
-    endif
-  endif
-  return trim(system('uuidgen --sha1 -n @dns -N ' . shellescape(l:base)))
-endfunction
-
-function! s:session_exists(sid) abort
-  if empty(a:sid)
-    return 0
-  endif
-  let l:found = trim(system('find ~/.claude/projects -name "*' . a:sid . '*" 2>/dev/null | head -1'))
-  return !empty(l:found) && l:found !~# 'No such file'
-endfunction
-
 function! s:build_cmd(...) abort
   let l:cmd = s:get('command', 'claude')
   let l:extra = s:get('extra_args', '')
@@ -159,61 +132,9 @@ function! claudeterm#toggle() abort
       call s:show()
     endif
   else
-    let l:strategy = s:get('open_strategy', 'resume')
-    if l:strategy ==# 'resume'
-      call s:open_resume_or_new()
-    else
-      call s:open_fresh()
-    endif
+    let l:cmd = s:build_cmd('--continue')
+    call s:open_with_cmd(l:cmd)
   endif
-endfunction
-
-" Open with --continue (resume last conversation). If that fails or there
-" is no prior session, fall back to a fresh session.
-function! s:open_resume_or_new() abort
-  let l:cwd = s:get('use_git_root', 1) ? s:git_root() : getcwd()
-  let l:cmd = s:build_cmd('--continue')
-
-  let l:saved_dir = getcwd()
-  execute 'lcd ' . fnameescape(l:cwd)
-  call s:open_split()
-  execute 'terminal ++curwin ++close ' . l:cmd
-  execute 'lcd ' . fnameescape(l:saved_dir)
-  let s:term_bufnr = bufnr('%')
-  let s:term_winid = win_getid()
-
-  call s:configure_term_window()
-  call s:start_reload_timer()
-  call claudeterm#hooks#fire('Open')
-  call s:focus_term()
-endfunction
-
-" Open a fresh session with a deterministic session ID.
-function! s:open_fresh() abort
-  let l:cwd = s:get('use_git_root', 1) ? s:git_root() : getcwd()
-  let l:sid = s:session_id()
-  let l:flags = ''
-
-  if !empty(l:sid) && s:session_exists(l:sid)
-    let l:flags = '-r ' . l:sid
-  elseif !empty(l:sid)
-    let l:flags = '--session-id=' . l:sid
-  endif
-
-  let l:cmd = s:build_cmd(l:flags)
-
-  let l:saved_dir = getcwd()
-  execute 'lcd ' . fnameescape(l:cwd)
-  call s:open_split()
-  execute 'terminal ++curwin ++close ' . l:cmd
-  execute 'lcd ' . fnameescape(l:saved_dir)
-  let s:term_bufnr = bufnr('%')
-  let s:term_winid = win_getid()
-
-  call s:configure_term_window()
-  call s:start_reload_timer()
-  call claudeterm#hooks#fire('Open')
-  call s:focus_term()
 endfunction
 
 function! s:show() abort
@@ -256,7 +177,8 @@ endfunction
 
 function! claudeterm#new() abort
   call s:kill_term_if_alive()
-  call s:open_fresh()
+  let l:cmd = s:build_cmd('')
+  call s:open_with_cmd(l:cmd)
   call claudeterm#hooks#fire('SessionChange')
 endfunction
 
@@ -333,7 +255,8 @@ endfunction
 function! claudeterm#set_model(model) abort
   let s:current_model = a:model
   call s:kill_term_if_alive()
-  call s:open_fresh()
+  let l:cmd = s:build_cmd('--continue')
+  call s:open_with_cmd(l:cmd)
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -343,7 +266,8 @@ endfunction
 function! claudeterm#toggle_verbose() abort
   let s:verbose = !s:verbose
   call s:kill_term_if_alive()
-  call s:open_fresh()
+  let l:cmd = s:build_cmd('--continue')
+  call s:open_with_cmd(l:cmd)
   echo 'claudeterm: verbose ' . (s:verbose ? 'ON' : 'OFF')
 endfunction
 
@@ -411,7 +335,7 @@ function! claudeterm#chat() abort
   endif
 
   if !s:term_alive()
-    call s:open_fresh()
+    call claudeterm#toggle()
   else
     let l:winid = bufwinid(s:term_bufnr)
     if l:winid == -1

@@ -26,10 +26,9 @@ CONTENTS                                              *claudeterm-contents*
   8. Hooks ................................ |claudeterm-hooks|
   9. Configuration ........................ |claudeterm-configuration|
      9.1 Core ............................ |claudeterm-config-core|
-     9.2 Session ......................... |claudeterm-config-session|
-     9.3 Auto-Reload .................... |claudeterm-config-reload|
-     9.4 Keymaps ......................... |claudeterm-config-keymaps|
-     9.5 Display ......................... |claudeterm-config-display|
+     9.2 Auto-Reload .................... |claudeterm-config-reload|
+     9.3 Keymaps ......................... |claudeterm-config-keymaps|
+     9.4 Display ......................... |claudeterm-config-display|
  10. Troubleshooting ...................... |claudeterm-troubleshooting|
 
 ==============================================================================
@@ -53,8 +52,7 @@ Key design principles:
 
   - Vim 8.0+ compiled with |+terminal|
   - Claude Code CLI (`claude`) installed and in $PATH
-  - `uuidgen` (for deterministic session IDs)
-  - Git (for branch-based session strategy)
+  - Git
 
 ==============================================================================
 3. Installation                                   *claudeterm-installation*
@@ -105,10 +103,10 @@ arguments.
 5.1 Session Management                                *claudeterm-session*
 
                                                       *:CTerm-toggle*
-:CTerm                  Toggle the Claude terminal. Opens a new session if
-:CT                     none exists; shows/hides if one is already running.
-                        Session ID is deterministic based on cwd and git
-                        branch (see |g:claudeterm_session_strategy|).
+:CTerm                  Toggle the Claude terminal. Resumes the most recent
+:CT                     session in the current directory (`--continue`), or
+                        starts a new one if none exists. Shows/hides if a
+                        session is already running.
 
                                                       *:CTresume*
 :CTerm resume           Open the Claude interactive session picker
@@ -349,43 +347,7 @@ g:claudeterm_extra_args       String (default: `''`)
                               invocation. Example: `'--add-dir /tmp/data'`.
 
 ------------------------------------------------------------------------------
-9.2 Session                                   *claudeterm-config-session*
-
-                                                *g:claudeterm_session_strategy*
-g:claudeterm_session_strategy String (default: `'branch'`)
-                              How the deterministic session ID is computed:
-                              `'branch'`  - hash of cwd + git branch
-                              `'directory'` - hash of cwd only
-                              `'none'`    - let the CLI decide (no
-                                            `--session-id` flag)
-
-                                                *g:claudeterm_open_strategy*
-g:claudeterm_open_strategy    String (default: `'resume'`)
-                              What happens when you toggle open (|:CTerm|)
-                              and no terminal is running:
-
-                              `'resume'` - Resume the most recent
-                                conversation in the current directory
-                                (`claude --continue`). If no prior session
-                                exists, Claude starts a new conversation
-                                automatically.
-
-                              `'fresh'`  - Always start a new session with
-                                a deterministic session ID based on the
-                                |g:claudeterm_session_strategy|. Resumes
-                                that specific session if it already exists.
-
-                              This only affects the toggle command. Explicit
-                              commands like |:CTresume|, |:CTcontinue|, and
-                              |:CTnew| always do what they say regardless
-                              of this setting.
-
-                              Example: >
-                                let g:claudeterm_open_strategy = 'fresh'
-<
-
-------------------------------------------------------------------------------
-9.3 Auto-Reload                                *claudeterm-config-reload*
+9.2 Auto-Reload                                *claudeterm-config-reload*
 
                                                 *g:claudeterm_auto_reload*
 g:claudeterm_auto_reload      Number (default: `1`)
@@ -403,7 +365,7 @@ g:claudeterm_notify_reload    Number (default: `1`)
                               Echo a notification when buffers are reloaded.
 
 ------------------------------------------------------------------------------
-9.4 Keymaps                                   *claudeterm-config-keymaps*
+9.3 Keymaps                                   *claudeterm-config-keymaps*
 
                                                 *g:claudeterm_map_keys*
 g:claudeterm_map_keys         Number (default: `1`)
@@ -418,7 +380,7 @@ list. Example override:
 <
 
 ------------------------------------------------------------------------------
-9.5 Display                                   *claudeterm-config-display*
+9.4 Display                                   *claudeterm-config-display*
 
                                                 *g:claudeterm_hide_numbers*
 g:claudeterm_hide_numbers     Number (default: `1`)
@@ -437,10 +399,6 @@ Terminal does not open~
 
 Claude not found~
   Ensure `claude` is in `$PATH`. Run `:CTdoctor` for a health check.
-
-Session ID errors~
-  The plugin uses `uuidgen --sha1`. Ensure `uuidgen` is installed.
-  On most Linux distributions it is part of `util-linux`.
 
 Buffers not reloading~
   Check that `g:claudeterm_auto_reload` is `1` and that |'autoread'| is
