@@ -366,6 +366,31 @@ g:claudeterm_session_strategy String (default: `'branch'`)
                               `'none'`    - let the CLI decide (no
                                             `--session-id` flag)
 
+                                                *g:claudeterm_open_strategy*
+g:claudeterm_open_strategy    String (default: `'resume'`)
+                              What happens when you toggle open (|:CTerm|)
+                              and no terminal is running:
+
+                              `'resume'` - Resume the most recent
+                                conversation in the current directory
+                                (`claude --continue`). If no prior session
+                                exists, Claude starts a new conversation
+                                automatically.
+
+                              `'fresh'`  - Always start a new session with
+                                a deterministic session ID based on the
+                                |g:claudeterm_session_strategy|. Resumes
+                                that specific session if it already exists.
+
+                              This only affects the toggle command. Explicit
+                              commands like |:CTresume|, |:CTcontinue|, and
+                              |:CTnew| always do what they say regardless
+                              of this setting.
+
+                              Example: >
+                                let g:claudeterm_open_strategy = 'fresh'
+<
+
 ------------------------------------------------------------------------------
 9.3 Auto-Reload                                *claudeterm-config-reload*
 

@@ -84,6 +84,7 @@ let g:claudeterm_split_ratio = 0.3         " fraction of screen (default 0.4)
 let g:claudeterm_permission_mode = 'plan'  " default mode for new sessions
 let g:claudeterm_model = 'sonnet'          " default model
 let g:claudeterm_session_strategy = 'branch' " branch (default), directory, none
+let g:claudeterm_open_strategy = 'resume'  " resume (default) or fresh
 let g:claudeterm_map_keys = 0              " disable all default keymaps
 ```
 

@@ -159,11 +159,37 @@ function! claudeterm#toggle() abort
       call s:show()
     endif
   else
-    call s:open_new()
+    let l:strategy = s:get('open_strategy', 'resume')
+    if l:strategy ==# 'resume'
+      call s:open_resume_or_new()
+    else
+      call s:open_fresh()
+    endif
   endif
 endfunction
 
-function! s:open_new() abort
+" Open with --continue (resume last conversation). If that fails or there
+" is no prior session, fall back to a fresh session.
+function! s:open_resume_or_new() abort
+  let l:cwd = s:get('use_git_root', 1) ? s:git_root() : getcwd()
+  let l:cmd = s:build_cmd('--continue')
+
+  let l:saved_dir = getcwd()
+  execute 'lcd ' . fnameescape(l:cwd)
+  call s:open_split()
+  execute 'terminal ++curwin ++close ' . l:cmd
+  execute 'lcd ' . fnameescape(l:saved_dir)
+  let s:term_bufnr = bufnr('%')
+  let s:term_winid = win_getid()
+
+  call s:configure_term_window()
+  call s:start_reload_timer()
+  call claudeterm#hooks#fire('Open')
+  call s:focus_term()
+endfunction
+
+" Open a fresh session with a deterministic session ID.
+function! s:open_fresh() abort
   let l:cwd = s:get('use_git_root', 1) ? s:git_root() : getcwd()
   let l:sid = s:session_id()
   let l:flags = ''
@@ -230,7 +256,7 @@ endfunction
 
 function! claudeterm#new() abort
   call s:kill_term_if_alive()
-  call s:open_new()
+  call s:open_fresh()
   call claudeterm#hooks#fire('SessionChange')
 endfunction
 
@@ -288,7 +314,7 @@ endfunction
 function! claudeterm#set_mode(mode) abort
   let s:current_mode = a:mode
   call s:kill_term_if_alive()
-  call s:open_new()
+  call s:open_fresh()
   call claudeterm#hooks#fire('ModeChange')
 endfunction
 
@@ -299,7 +325,7 @@ endfunction
 function! claudeterm#set_model(model) abort
   let s:current_model = a:model
   call s:kill_term_if_alive()
-  call s:open_new()
+  call s:open_fresh()
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -309,7 +335,7 @@ endfunction
 function! claudeterm#toggle_verbose() abort
   let s:verbose = !s:verbose
   call s:kill_term_if_alive()
-  call s:open_new()
+  call s:open_fresh()
   echo 'claudeterm: verbose ' . (s:verbose ? 'ON' : 'OFF')
 endfunction
 
@@ -377,7 +403,7 @@ function! claudeterm#chat() abort
   endif
 
   if !s:term_alive()
-    call s:open_new()
+    call s:open_fresh()
   else
     let l:winid = bufwinid(s:term_bufnr)
     if l:winid == -1
