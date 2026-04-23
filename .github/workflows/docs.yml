@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: tsuyoshicho/action-vimhelp-html-generate@v1
-        with:
+        env:
           FOLDER: build
           BACKGROUND: light
           COLORSCHEME: github
