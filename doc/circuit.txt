@@ -375,6 +375,7 @@ Available events:
   CTToggleShow            Terminal shown (unhidden)
   CTToggleHide            Terminal hidden
   CTKill                  Terminal killed
+  CTTermExited            Agent process exited (split closed, buffer wiped)
   CTZoomIn                Terminal zoomed to full-screen
   CTZoomOut               Terminal restored from zoom
   CTReload                One or more buffers auto-reloaded
@@ -459,12 +460,21 @@ g:circuit_worktree_tmux     Number (default: `0`)
 
                                                 *g:circuit_auto_reload*
 g:circuit_auto_reload       Number (default: `1`)
-                            Enable buffer auto-reload polling while the
-                            agent terminal is active.
+                            Enable buffer mtime auto-reload while the agent
+                            terminal is active. The same timer (see
+                            |g:circuit_reload_interval|) still runs when
+                            this is `0` so the plugin can detect a finished
+                            job and close the terminal split (see
+                            |CTTermExited|). |'autoread'| and
+                            |g:circuit_notify_reload| only apply when this
+                            is `1`.
 
                                                 *g:circuit_reload_interval*
 g:circuit_reload_interval   Number (default: `1000`)
-                            Polling interval in milliseconds.
+                            Polling interval in milliseconds for the
+                            timer that checks for a finished job and, when
+                            |g:circuit_auto_reload| is on, for buffer
+                            mtime changes.
 
                                                 *g:circuit_notify_reload*
 g:circuit_notify_reload     Number (default: `1`)
@@ -515,6 +525,22 @@ Unsupported feature warning~
 Buffers not reloading~
   Check that `g:circuit_auto_reload` is `1` and that |'autoread'| is
   not globally disabled.
+
+Empty window after the agent exits~
+  When the agent CLI (e.g. opencode) exits, the split should close
+  automatically (|TermClose| or the circuit timer). If a stale buffer
+  remains, run |:CTkill| or `:bwipe` that buffer.
+
+OpenCode prints JSON (`sessionID`, `invalid_format`, `ses`, etc.)~
+  This comes from the `opencode` process, not from vim-circuit. The
+  plugin only runs the shell command (e.g. `opencode --continue` for
+  |:CT|). Some OpenCode versions or features (e.g. subagent dispatch)
+  validate session IDs and may log a JSON error if a placeholder such
+  as `dummy` is used where a real ID (starting with `ses`) is
+  required. Workarounds: upgrade `opencode` to the latest release, try
+  |:CTnew| to start without `--continue`, and check OpenCode
+  project issues for the exact message. If the session still works,
+  the line is often harmless noise from a background request.
 
 Keymaps conflict~
   Set `g:circuit_map_keys = 0` to disable all defaults, then define

@@ -262,18 +262,65 @@ function! circuit#kill() abort
   call circuit#hooks#fire('Kill')
 endfunction
 
+" Called on |TermClose| (plugin) when a terminal's job ended; also used by
+" tests and future integrations.
+function! circuit#on_termclose(bufnr) abort
+  if a:bufnr !=# s:term_bufnr
+    return
+  endif
+  call s:cleanup_after_circuit_job_exit()
+endfunction
+
+function! s:close_circuit_buffer_window() abort
+  if s:term_bufnr ==# -1
+    return
+  endif
+  let l:buf = s:term_bufnr
+  if !bufexists(l:buf)
+    return
+  endif
+  let l:winid = bufwinid(l:buf)
+  if l:winid !=# -1
+    let l:save = win_getid()
+    let l:target = win_id2win(l:winid)
+    execute l:target . 'wincmd w'
+    quit!
+    if win_id2win(l:save) > 0
+      call win_gotoid(l:save)
+    endif
+  endif
+  if bufexists(l:buf)
+    execute 'bwipeout! ' . l:buf
+  endif
+endfunction
+
+" After the agent CLI (e.g. opencode) exits, close the split, wipe the buffer,
+" and fire |CTTermExited| — distinct from CTKill (|circuit#kill()|).
+function! s:cleanup_after_circuit_job_exit() abort
+  call s:stop_reload_timer()
+  if s:term_bufnr ==# -1
+    return
+  endif
+  if !bufexists(s:term_bufnr)
+    let s:term_bufnr = -1
+    let s:term_winid = -1
+    let s:is_zoomed = 0
+    return
+  endif
+  if s:term_alive()
+    return
+  endif
+  call s:close_circuit_buffer_window()
+  let s:term_bufnr = -1
+  let s:term_winid = -1
+  let s:is_zoomed = 0
+  call circuit#hooks#fire('TermExited')
+endfunction
+
 function! s:kill_term_if_alive() abort
   call s:stop_reload_timer()
   if s:term_alive()
-    let l:winid = bufwinid(s:term_bufnr)
-    if l:winid != -1
-      let l:winnr = win_id2win(l:winid)
-      execute l:winnr . 'wincmd w'
-      quit!
-    endif
-    if bufexists(s:term_bufnr)
-      execute 'bwipeout! ' . s:term_bufnr
-    endif
+    call s:close_circuit_buffer_window()
   endif
   let s:term_bufnr = -1
   let s:term_winid = -1
@@ -542,9 +589,6 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! s:start_reload_timer() abort
-  if !s:get('auto_reload', 1)
-    return
-  endif
   call s:stop_reload_timer()
   let l:interval = s:get('reload_interval', 1000)
   let s:reload_timer = timer_start(l:interval, function('s:reload_check'), {'repeat': -1})
@@ -558,8 +602,15 @@ function! s:stop_reload_timer() abort
 endfunction
 
 function! s:reload_check(timer_id) abort
+  if s:term_bufnr !=# -1 && !s:term_alive()
+    call s:cleanup_after_circuit_job_exit()
+    return
+  endif
   if !s:term_alive()
     call s:stop_reload_timer()
+    return
+  endif
+  if !s:get('auto_reload', 1)
     return
   endif
   let l:reloaded = 0

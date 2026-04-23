@@ -209,3 +209,10 @@ augroup circuit_autoread
   autocmd!
   autocmd FocusGained,BufEnter * if get(g:, 'circuit_auto_reload', 1) | checktime | endif
 augroup END
+
+if has('terminal') && exists('##TermClose')
+  augroup circuit_termexit
+    autocmd!
+    autocmd TermClose * call circuit#on_termclose(0 + expand('<abuf>'))
+  augroup END
+endif
