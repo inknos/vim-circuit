@@ -28,7 +28,9 @@ jobs:
           COLORSCHEME: github
 
       - name: Use help file as index
-        run: cp build/claudeterm.html build/index.html
+        run: |
+          sudo chown -R $(id -u):$(id -g) build/
+          cp build/claudeterm.html build/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
