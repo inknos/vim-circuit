@@ -100,24 +100,26 @@ function! s:build_cmd(...) abort
   return l:cmd
 endfunction
 
-function! s:split_cmd() abort
+function! s:open_split() abort
   let l:pos = s:get('position', 'right')
   let l:ratio = s:get('split_ratio', 0.4)
 
   if l:pos ==# 'right'
     let l:size = float2nr(&columns * l:ratio)
-    return 'vertical botright ' . l:size
+    execute 'vertical botright ' . l:size . 'new'
   elseif l:pos ==# 'left'
     let l:size = float2nr(&columns * l:ratio)
-    return 'vertical topleft ' . l:size
+    execute 'vertical topleft ' . l:size . 'new'
   elseif l:pos ==# 'bottom'
     let l:size = float2nr(&lines * l:ratio)
-    return 'botright ' . l:size
+    execute 'botright ' . l:size . 'new'
   elseif l:pos ==# 'top'
     let l:size = float2nr(&lines * l:ratio)
-    return 'topleft ' . l:size
+    execute 'topleft ' . l:size . 'new'
+  else
+    let l:size = float2nr(&columns * l:ratio)
+    execute 'vertical botright ' . l:size . 'new'
   endif
-  return 'vertical botright ' . float2nr(&columns * l:ratio)
 endfunction
 
 function! s:configure_term_window() abort
@@ -173,9 +175,12 @@ function! s:open_new() abort
   endif
 
   let l:cmd = s:build_cmd(l:flags)
-  let l:split = s:split_cmd()
 
-  execute l:split . ' terminal ++curwin ++close ' . l:cmd
+  let l:saved_dir = getcwd()
+  execute 'lcd ' . fnameescape(l:cwd)
+  call s:open_split()
+  execute 'terminal ++curwin ++close ' . l:cmd
+  execute 'lcd ' . fnameescape(l:saved_dir)
   let s:term_bufnr = bufnr('%')
   let s:term_winid = win_getid()
 
@@ -186,8 +191,7 @@ function! s:open_new() abort
 endfunction
 
 function! s:show() abort
-  let l:split = s:split_cmd()
-  execute l:split . ' split'
+  call s:open_split()
   execute 'buffer ' . s:term_bufnr
   let s:term_winid = win_getid()
 
@@ -262,9 +266,12 @@ endfunction
 
 function! s:open_with_cmd(cmd) abort
   let l:cwd = s:get('use_git_root', 1) ? s:git_root() : getcwd()
-  let l:split = s:split_cmd()
 
-  execute l:split . ' terminal ++curwin ++close ' . a:cmd
+  let l:saved_dir = getcwd()
+  execute 'lcd ' . fnameescape(l:cwd)
+  call s:open_split()
+  execute 'terminal ++curwin ++close ' . a:cmd
+  execute 'lcd ' . fnameescape(l:saved_dir)
   let s:term_bufnr = bufnr('%')
   let s:term_winid = win_getid()
 
