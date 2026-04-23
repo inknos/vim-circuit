@@ -3,34 +3,50 @@
 Agent CLI terminal integration for Vim. One keypress opens your agent in a split.
 Another hides it. Your session persists across toggles.
 
+Works with any supported agent CLI — not tied to a single vendor.
+
+## Supported Providers
+
+| Provider | CLI binary | Project |
+|---|---|---|
+| **OpenCode** (recommended) | `opencode` | [opencode-ai/opencode](https://github.com/opencode-ai/opencode) |
+| Claude Code | `claude` | [anthropics/claude-code](https://github.com/anthropics/claude-code) |
+| Cursor Agent | `agent` | [getcursor/cursor](https://www.cursor.com/) |
+| Gemini CLI | `gemini` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
+
+> **vim-circuit does not handle authentication or API keys.**
+> Each CLI must already be installed, authenticated, and working on its own
+> before you use it through this plugin. If `opencode` (or whichever CLI you
+> choose) doesn't work when you run it directly in a terminal, it won't work
+> here either. Refer to each project's documentation for setup instructions.
+
 ## Features
 
+- **Multi-provider**: switch between agent CLIs with a single config variable
 - **Persistent terminal** with automatic session resume via `--continue`
-- **Session switching**: resume, continue, new, from-PR -- all tab-completable
+- **Session switching**: resume, continue, new, from-PR — all tab-completable
 - **Worktree support**: `--worktree` integration with optional tmux mode
-- **Mode control**: plan, auto, default, acceptEdits via `--permission-mode`
-- **Model switching**: sonnet, opus, haiku, or any full model name
+- **Mode control**: plan, fast, and other interactive modes (provider-dependent)
+- **Model switching**: use model aliases or full model names (provider-dependent)
 - **Zoom toggle**: maximize/restore the agent split (tmux-style)
 - **Send selection**: pipe visual selection to the agent with file context
 - **Auto buffer reload**: detects files changed by the agent and reloads them
 - **Lifecycle hooks**: `User CTOpen`, `CTReload`, etc.
 - **Fully configurable**: every keymap, behavior, and CLI flag via `g:circuit_*`
 
+Not every feature is available for every provider. The plugin warns you
+when you try to use a feature that your provider doesn't support.
+
 ## Requirements
 
 - Vim 8.0+ with `+terminal`
-- An agent CLI (e.g. [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)) in `$PATH`
+- A supported agent CLI installed and in `$PATH` (see [Supported Providers](#supported-providers))
+- The CLI must be authenticated and functional — run it standalone first
 - Git
 
 ## Installation
 
-### vim-plug (local)
-
-```vim
-Plug '~/Documents/personal_projects/circuit'
-```
-
-### vim-plug (GitHub)
+### vim-plug
 
 ```vim
 Plug 'inknos/vim-circuit'
@@ -45,16 +61,56 @@ git clone https://github.com/inknos/vim-circuit.git \
 
 Then run `:helptags ALL` in Vim.
 
+## Provider Setup
+
+**You must set `g:circuit_provider`** in your `.vimrc` to tell vim-circuit
+which CLI to use. There is no auto-detection.
+
+```vim
+" Required — pick your provider
+let g:circuit_provider = 'opencode'
+```
+
+Valid values: `'opencode'`, `'claude'`, `'gemini'`, `'agent'`.
+
+If you need to override the CLI binary name or path (e.g. you renamed
+the binary or it's not on `$PATH`), set `g:circuit_command`:
+
+```vim
+let g:circuit_provider = 'opencode'
+let g:circuit_command = '/usr/local/bin/opencode'
+```
+
+When `g:circuit_command` is not set, the plugin uses the provider's
+default binary name.
+
+### Provider feature matrix
+
+Not all CLIs support the same features. Here's what works where:
+
+| Feature | Claude | Cursor Agent | Gemini | OpenCode |
+|---|:---:|:---:|:---:|:---:|
+| Continue session | ✓ | ✓ | ✓ | ✓ |
+| Resume (picker) | ✓ | ✓ | ✓ | ✓ |
+| Model switching | ✓ | ✓ | ✓ | ✓ |
+| Permission/approval mode | ✓ | ✓ | ✓ | — |
+| Verbose/debug | ✓ | — | ✓ | — |
+| Worktree | ✓ | ✓ | ✓ | — |
+| From PR | ✓ | — | — | — |
+| Interactive modes | ✓ | ✓ | — | — |
+| Health check | ✓ | ✓ | — | — |
+
 ## Quick Start
 
 ```vim
-:CTerm          " Toggle agent terminal (or <leader>c)
-:CTerm resume   " Interactive session picker (or <leader>cr)
-:CTerm plan     " Toggle plan mode (or <leader>cmp)
-:CTerm fast     " Toggle fast mode (or <leader>cmf)
-:CTerm model opus " Switch to opus (or <leader>cmo)
-:CTerm worktree   " Launch in a git worktree (or <leader>cw)
-:CTworktree!      " Launch worktree in tmux pane
+" Set your provider first
+let g:circuit_provider = 'opencode'
+
+:CTerm              " Toggle agent terminal (or <leader>c)
+:CTerm resume       " Interactive session picker (or <leader>cr)
+:CTerm model {name} " Switch model (or <leader>cm)
+:CTerm worktree     " Launch in a git worktree (or <leader>cw)
+:CTworktree!        " Launch worktree in tmux pane
 ```
 
 ## Commands
@@ -66,15 +122,15 @@ Then run `:helptags ALL` in Vim.
 | `:CTerm continue` | `:CTcontinue` | `<leader>cc` | Resume last chat |
 | `:CTerm new` | `:CTnew` | `<leader>cn` | New session |
 | `:CTerm kill` | `:CTkill` | `<leader>ck` | Kill terminal |
-| `:CTerm pr` | `:CTpr` | `<leader>cp` | Resume from PR |
+| `:CTerm pr` | `:CTpr` | `<leader>cp` | Resume from PR (Claude only) |
 | `:CTerm worktree` | `:CTworktree` | `<leader>cw` | Launch in git worktree |
-| `:CTerm plan` | `:CTplan` | `<leader>cmp` | Toggle plan mode (sends `/plan`) |
-| `:CTerm fast` | `:CTfast` | `<leader>cmf` | Toggle fast mode (sends `/fast`) |
+| `:CTerm plan` | `:CTplan` | `<leader>cmp` | Toggle plan mode (provider-dependent) |
+| `:CTerm fast` | `:CTfast` | `<leader>cmf` | Toggle fast mode (provider-dependent) |
 | `:CTerm zoom` | `:CTzoom` | `<leader>cz` | Zoom toggle |
 | `:CTerm send` | `:CTsend` | `<leader>cs` (visual) | Send selection |
 | `:CTerm chat` | `:CTchat` | `<leader>ch` | Free-form chat |
-| `:CTerm model {name}` | `:CTmodel {name}` | `<leader>cms/o/h` | Switch model |
-| `:CTerm verbose` | `:CTverbose` | `<leader>cv` | Verbose toggle |
+| `:CTerm model {name}` | `:CTmodel {name}` | — | Switch model |
+| `:CTerm verbose` | `:CTverbose` | `<leader>cv` | Verbose toggle (provider-dependent) |
 | `:CTerm doctor` | `:CTdoctor` | -- | Health check |
 | `:CTerm version` | `:CTversion` | -- | Show versions |
 
@@ -83,11 +139,15 @@ Then run `:helptags ALL` in Vim.
 Set any of these in your `.vimrc` before the plugin loads:
 
 ```vim
+" Provider (required)
+let g:circuit_provider = 'opencode'
+
+" General
 let g:circuit_position = 'bottom'       " right (default), left, top, bottom
 let g:circuit_split_ratio = 0.3         " fraction of screen (default 0.4)
 let g:circuit_permission_mode = 'plan'  " default mode for new sessions
-let g:circuit_model = 'sonnet'          " default model
-let g:circuit_worktree_tmux = 1        " always use tmux for worktree
+let g:circuit_model = ''                " default model (provider-dependent)
+let g:circuit_worktree_tmux = 1         " always use tmux for worktree
 let g:circuit_map_keys = 0              " disable all default keymaps
 ```
 
@@ -113,4 +173,4 @@ HTML docs are generated from the vimdoc source and available [here](https://inkn
 
 ## License
 
-MIT
+GPL-3.0
