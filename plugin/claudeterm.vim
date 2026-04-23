@@ -49,9 +49,7 @@ let g:claudeterm_map_send         = get(g:, 'claudeterm_map_send', '<leader>cs')
 let g:claudeterm_map_chat         = get(g:, 'claudeterm_map_chat', '<leader>ch')
 let g:claudeterm_map_verbose      = get(g:, 'claudeterm_map_verbose', '<leader>cv')
 let g:claudeterm_map_mode_plan    = get(g:, 'claudeterm_map_mode_plan', '<leader>cmp')
-let g:claudeterm_map_mode_auto    = get(g:, 'claudeterm_map_mode_auto', '<leader>cma')
-let g:claudeterm_map_mode_default = get(g:, 'claudeterm_map_mode_default', '<leader>cmd')
-let g:claudeterm_map_mode_accept  = get(g:, 'claudeterm_map_mode_accept', '<leader>cme')
+let g:claudeterm_map_mode_fast    = get(g:, 'claudeterm_map_mode_fast', '<leader>cmf')
 let g:claudeterm_map_model_sonnet = get(g:, 'claudeterm_map_model_sonnet', '<leader>cms')
 let g:claudeterm_map_model_opus   = get(g:, 'claudeterm_map_model_opus', '<leader>cmo')
 let g:claudeterm_map_model_haiku  = get(g:, 'claudeterm_map_model_haiku', '<leader>cmh')
@@ -72,9 +70,8 @@ command! -nargs=0 CTkill     call claudeterm#kill()
 command! -nargs=0 CTpr       call claudeterm#from_pr()
 command! -nargs=0 CTzoom     call claudeterm#zoom()
 command! -nargs=0 CTplan     call claudeterm#set_mode('plan')
-command! -nargs=0 CTauto     call claudeterm#set_mode('auto')
-command! -nargs=0 CTdefault  call claudeterm#set_mode('default')
-command! -nargs=0 CTaccept   call claudeterm#set_mode('acceptEdits')
+command! -nargs=0 CTfast     call claudeterm#set_mode('fast')
+command! -nargs=0 CTnormal   call claudeterm#set_mode('plan')
 command! -nargs=1 CTmodel    call claudeterm#set_model(<f-args>)
 command! -nargs=0 CTverbose  call claudeterm#toggle_verbose()
 command! -nargs=0 CTdoctor   call claudeterm#doctor()
@@ -112,11 +109,15 @@ function! s:dispatch(...) abort
     call claudeterm#doctor()
   elseif l:cmd ==# 'version'
     call claudeterm#version()
+  elseif l:cmd ==# 'plan'
+    call claudeterm#set_mode('plan')
+  elseif l:cmd ==# 'fast'
+    call claudeterm#set_mode('fast')
   elseif l:cmd ==# 'mode'
     if a:0 >= 2
       call claudeterm#set_mode(a:2)
     else
-      echoerr 'claudeterm: mode requires an argument (plan/auto/default/acceptEdits/dontAsk/bypassPermissions)'
+      echoerr 'claudeterm: mode requires an argument (plan/fast/normal)'
     endif
   elseif l:cmd ==# 'model'
     if a:0 >= 2
@@ -159,11 +160,9 @@ if g:claudeterm_map_keys
   " Verbose
   execute 'nnoremap <silent> ' . g:claudeterm_map_verbose  . ' :call claudeterm#toggle_verbose()<CR>'
 
-  " Mode control
-  execute 'nnoremap <silent> ' . g:claudeterm_map_mode_plan    . " :call claudeterm#set_mode('plan')<CR>"
-  execute 'nnoremap <silent> ' . g:claudeterm_map_mode_auto    . " :call claudeterm#set_mode('auto')<CR>"
-  execute 'nnoremap <silent> ' . g:claudeterm_map_mode_default . " :call claudeterm#set_mode('default')<CR>"
-  execute 'nnoremap <silent> ' . g:claudeterm_map_mode_accept  . " :call claudeterm#set_mode('acceptEdits')<CR>"
+  " Mode control (sends /plan or /fast slash commands to the session)
+  execute 'nnoremap <silent> ' . g:claudeterm_map_mode_plan . " :call claudeterm#set_mode('plan')<CR>"
+  execute 'nnoremap <silent> ' . g:claudeterm_map_mode_fast . " :call claudeterm#set_mode('fast')<CR>"
 
   " Model switching
   execute 'nnoremap <silent> ' . g:claudeterm_map_model_sonnet . " :call claudeterm#set_model('sonnet')<CR>"

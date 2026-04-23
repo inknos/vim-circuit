@@ -134,32 +134,25 @@ arguments.
 ------------------------------------------------------------------------------
 5.2 Mode Control                                       *claudeterm-modes*
 
-Claude CLI supports `--permission-mode` with the following choices:
-`default`, `plan`, `auto`, `acceptEdits`, `dontAsk`, `bypassPermissions`.
-
-These commands kill the current session and restart with the given mode.
+Claude CLI has three interactive modes. These commands send the
+corresponding slash command (`/plan`, `/fast`) to the running session --
+no restart needed. If no session is running, one is opened first.
 
                                                       *:CTplan*
-:CTerm mode plan        Start session in plan mode. Claude will only read
-:CTplan                 and analyze but not modify files.
+:CTerm plan             Toggle plan mode. Claude focuses on designing an
+:CTplan                 implementation strategy without making changes. It
+                        can research and explore the codebase but won't
+                        edit files or write code. Toggle again (or send
+                        `/plan`) to exit back to normal mode.
 
-                                                      *:CTauto*
-:CTerm mode auto        Start session in auto mode. Claude will
-:CTauto                 automatically approve most tool use.
+                                                      *:CTfast*
+:CTerm fast             Toggle fast mode. Uses the same model but with
+:CTfast                 faster output. Good for simpler tasks where speed
+                        matters more than deep reasoning.
 
-                                                      *:CTdefault*
-:CTerm mode default     Start session in default mode (prompts for each
-:CTdefault              tool use).
-
-                                                      *:CTaccept*
-:CTerm mode accept      Start session in acceptEdits mode. Claude will
-:CTaccept               auto-approve file edits but prompt for other tools.
-
-:CTerm mode dontAsk     Start in dontAsk mode (no prompts at all).
-
-:CTerm mode bypassPermissions
-                        Start in bypassPermissions mode. NOT recommended
-                        outside of sandboxed environments.
+:CTerm mode {mode}      Send `/{mode}` to the running session. {mode} can
+                        be `plan`, `fast`, or `normal` (which toggles plan
+                        off if active).
 
 ------------------------------------------------------------------------------
 5.3 Window Control                                    *claudeterm-window*
@@ -233,9 +226,7 @@ variable.
   <leader>ch       Chat            |g:claudeterm_map_chat|
   <leader>cv       Verbose toggle  |g:claudeterm_map_verbose|
   <leader>cmp      Mode: plan      |g:claudeterm_map_mode_plan|
-  <leader>cma      Mode: auto      |g:claudeterm_map_mode_auto|
-  <leader>cmd      Mode: default   |g:claudeterm_map_mode_default|
-  <leader>cme      Mode: accept    |g:claudeterm_map_mode_accept|
+  <leader>cmf      Mode: fast      |g:claudeterm_map_mode_fast|
   <leader>cms      Model: sonnet   |g:claudeterm_map_model_sonnet|
   <leader>cmo      Model: opus     |g:claudeterm_map_model_opus|
   <leader>cmh      Model: haiku    |g:claudeterm_map_model_haiku|
@@ -265,12 +256,11 @@ These keymaps are active when the cursor is inside any terminal buffer.
 `:CTerm` supports context-aware tab-completion:
 
   :CTerm <Tab>           Completes subcommands: `resume`, `continue`,
-                         `new`, `kill`, `pr`, `mode`, `zoom`, `position`,
-                         `send`, `chat`, `model`, `verbose`, `doctor`,
-                         `version`.
+                         `new`, `kill`, `pr`, `plan`, `fast`, `mode`,
+                         `zoom`, `position`, `send`, `chat`, `model`,
+                         `verbose`, `doctor`, `version`.
 
-  :CTerm mode <Tab>      Completes: `plan`, `auto`, `default`,
-                         `acceptEdits`, `dontAsk`, `bypassPermissions`.
+  :CTerm mode <Tab>      Completes: `plan`, `fast`, `normal`.
 
   :CTerm model <Tab>     Completes: `sonnet`, `opus`, `haiku`.
 
@@ -338,11 +328,14 @@ g:claudeterm_use_git_root     Number (default: `1`)
 
                                                 *g:claudeterm_permission_mode*
 g:claudeterm_permission_mode  String (default: `''`)
-                              Default `--permission-mode` passed to every
-                              `claude` invocation. Empty means CLI default.
-                              Valid values: `'default'`, `'plan'`, `'auto'`,
+                              Default `--permission-mode` passed at CLI
+                              startup. Controls tool approval behavior.
+                              Empty means CLI default. Valid values:
+                              `'default'`, `'plan'`, `'auto'`,
                               `'acceptEdits'`, `'dontAsk'`,
                               `'bypassPermissions'`.
+                              Note: this is separate from the interactive
+                              modes toggled by |:CTplan| and |:CTfast|.
 
                                                 *g:claudeterm_model*
 g:claudeterm_model            String (default: `''`)

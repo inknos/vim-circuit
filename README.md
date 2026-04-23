@@ -50,7 +50,8 @@ Then run `:helptags ALL` in Vim.
 ```vim
 :CTerm          " Toggle Claude terminal (or <leader>c)
 :CTerm resume   " Interactive session picker (or <leader>cr)
-:CTerm mode plan " Switch to plan mode (or <leader>cmp)
+:CTerm plan     " Toggle plan mode (or <leader>cmp)
+:CTerm fast     " Toggle fast mode (or <leader>cmf)
 :CTerm model opus " Switch to opus (or <leader>cmo)
 ```
 
@@ -64,8 +65,8 @@ Then run `:helptags ALL` in Vim.
 | `:CTerm new` | `:CTnew` | `<leader>cn` | New session |
 | `:CTerm kill` | `:CTkill` | `<leader>ck` | Kill terminal |
 | `:CTerm pr` | `:CTpr` | `<leader>cp` | Resume from PR |
-| `:CTerm mode plan` | `:CTplan` | `<leader>cmp` | Plan mode |
-| `:CTerm mode auto` | `:CTauto` | `<leader>cma` | Auto mode |
+| `:CTerm plan` | `:CTplan` | `<leader>cmp` | Toggle plan mode (sends `/plan`) |
+| `:CTerm fast` | `:CTfast` | `<leader>cmf` | Toggle fast mode (sends `/fast`) |
 | `:CTerm zoom` | `:CTzoom` | `<leader>cz` | Zoom toggle |
 | `:CTerm send` | `:CTsend` | `<leader>cs` (visual) | Send selection |
 | `:CTerm chat` | `:CTchat` | `<leader>ch` | Free-form chat |

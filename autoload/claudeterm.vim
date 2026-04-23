@@ -308,13 +308,21 @@ function! s:open_with_cmd(cmd) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Mode control
+" Mode control (sends slash commands to the running session)
 " ---------------------------------------------------------------------------
 
 function! claudeterm#set_mode(mode) abort
+  if !s:term_alive()
+    call claudeterm#toggle()
+  else
+    let l:winid = bufwinid(s:term_bufnr)
+    if l:winid == -1
+      call s:show()
+    endif
+  endif
+
+  call term_sendkeys(s:term_bufnr, '/' . a:mode . "\n")
   let s:current_mode = a:mode
-  call s:kill_term_if_alive()
-  call s:open_fresh()
   call claudeterm#hooks#fire('ModeChange')
 endfunction
 
@@ -513,7 +521,7 @@ function! claudeterm#complete(arglead, cmdline, cursorpos) abort
   " Second word: subcommand
   if l:nparts <= 2
     let l:subs = ['resume', 'continue', 'new', 'kill', 'pr',
-          \ 'mode', 'zoom', 'position', 'send', 'chat',
+          \ 'plan', 'fast', 'mode', 'zoom', 'position', 'send', 'chat',
           \ 'model', 'verbose', 'doctor', 'version']
     return filter(copy(l:subs), 'v:val =~# "^" . a:arglead')
   endif
@@ -521,7 +529,7 @@ function! claudeterm#complete(arglead, cmdline, cursorpos) abort
   " Third word: sub-subcommand
   let l:sub = l:parts[1]
   if l:sub ==# 'mode'
-    let l:modes = ['plan', 'auto', 'default', 'acceptEdits', 'dontAsk', 'bypassPermissions']
+    let l:modes = ['plan', 'fast', 'normal']
     return filter(copy(l:modes), 'v:val =~# "^" . a:arglead')
   elseif l:sub ==# 'model'
     let l:models = ['sonnet', 'opus', 'haiku']
