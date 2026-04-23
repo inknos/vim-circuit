@@ -20,34 +20,15 @@ jobs:
     name: Build vimdoc HTML
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Generate HTML from vimdoc
-        uses: tsuyoshicho/action-vimhelp-html-generate@v1
-        env:
+      - uses: tsuyoshicho/action-vimhelp-html-generate@v1
+        with:
           FOLDER: build
           BACKGROUND: light
           COLORSCHEME: github
 
-      - name: Create index.html
-        run: |
-          cd build
-          if [ -f claudeterm.html ]; then
-            cp claudeterm.html index.html
-          elif [ -f claudeterm.txt.html ]; then
-            cp claudeterm.txt.html index.html
-          else
-            # Fall back to first HTML file found
-            first=$(ls *.html 2>/dev/null | head -1)
-            if [ -n "$first" ] && [ "$first" != "index.html" ]; then
-              cp "$first" index.html
-            fi
-          fi
-          ls -la
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: build/
 
@@ -59,6 +40,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
