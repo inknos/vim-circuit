@@ -14,24 +14,36 @@ model selection, worktree support, and more.
 ## Architecture
 
 ```
-plugin/circuit.vim            ← loaded once at startup
+plugin/circuit.vim                ← loaded once at startup
   • g:loaded_circuit guard, +terminal feature check
   • g:circuit_* config defaults (get(g:, ...) pattern)
+  • g:circuit_provider — selects the active CLI backend
   • :CTerm dispatcher + short command aliases
   • keymap registration (guarded by g:circuit_map_keys)
   • FocusGained/BufEnter autocommand for checktime
 
-autoload/circuit.vim          ← lazy-loaded on first circuit# call
+autoload/circuit.vim              ← lazy-loaded on first circuit# call
   • s: script-local state (term_bufnr, zoom, timer, mode, model)
-  • s: helpers (get, git_root, build_cmd, open_split, ...)
+  • s: helpers (get, git_root, build_cmd, open_split, provider, ...)
   • circuit# public functions (toggle, resume, continue, new, ...)
+  • provider-aware: reads flags from circuit#providers#current()
   • tab-completion via circuit#complete()
 
-autoload/circuit/hooks.vim    ← thin hook dispatcher
+autoload/circuit/providers.vim    ← provider registry
+  • s:providers dict — one dict per backend (claude, agent, gemini, opencode)
+  • circuit#providers#get(name) — returns a provider dict
+  • circuit#providers#list() — returns provider names
+  • circuit#providers#current() — returns the active provider dict
+
+autoload/circuit/hooks.vim        ← thin hook dispatcher
   • circuit#hooks#fire(event) → doautocmd User CT{Event}
 
-doc/circuit.txt               ← vimdoc (generates HTML via CI)
+doc/circuit.txt                   ← vimdoc (generates HTML via CI)
   • full user documentation, 78-char width, vim help format
+
+test/                             ← Vader test suite
+  • test/vimrc — minimal runtime (loads plugin + Vader only)
+  • test/*.vader — test files (providers, completion, features, etc.)
 ```
 
 ## Vimscript Conventions
@@ -60,7 +72,7 @@ Every `.vim` file starts with:
 ```vim
 " vim-circuit: <brief purpose>
 " Maintainer: inknos
-" License: MIT
+" License: GPL-3.0
 ```
 
 ### Section separators
@@ -170,7 +182,48 @@ block.
 | Toggle | `circuit#toggle()` | (default) | `:CT` | `g:circuit_map_toggle` |
 | Resume | `circuit#resume()` | `resume` | `:CTresume` | `g:circuit_map_resume` |
 | Zoom | `circuit#zoom()` | `zoom` | `:CTzoom` | `g:circuit_map_zoom` |
-| Model | `circuit#set_model()` | `model` | `:CTmodel` | `g:circuit_map_model_*` |
+| Model | `circuit#set_model()` | `model` | `:CTmodel` | — |
+| Undo | `circuit#undo()` | `undo` | `:CTundo` | `g:circuit_map_undo` |
+| Sessions | `circuit#sessions()` | `sessions` | `:CTsessions` | `g:circuit_map_sessions` |
+
+## Testing
+
+The test suite uses [Vader.vim](https://github.com/junegunn/vader.vim), included as
+a git submodule at `test/vader.vim`.
+
+### Running tests
+
+```bash
+make test      # runs all .vader files headlessly
+make check     # runs lint + tests
+```
+
+### Test structure
+
+- `test/vimrc` — minimal vimrc that loads only the plugin and Vader.
+- `test/providers.vader` — unit tests for `circuit#providers#*` functions.
+- `test/completion.vader` — tab-completion behavior per provider.
+- `test/features.vader` — new features (undo, redo, export, stats, sessions).
+- `test/provider_aware.vader` — unsupported-feature warnings for each provider.
+
+### Writing tests
+
+- Test public `circuit#` functions, not `s:` script-local functions.
+- Test both the supported and unsupported code paths for provider-dependent features.
+- Use `redir => output` / `redir END` to capture `echo` output for assertion.
+- Set `g:circuit_provider` at the start of each test and restore it at the end.
+- Naming convention: `test/{module}.vader`.
+
+## Linting
+
+Static analysis uses [vint](https://github.com/Vimjas/vint).
+
+```bash
+make lint      # runs vint on autoload/ and plugin/
+pip install vim-vint   # install vint
+```
+
+Configuration lives in `.vintrc.yaml`. Fix all warnings before committing.
 
 ## Constraints
 
@@ -178,3 +231,4 @@ block.
 - **No Neovim-only APIs.** Must work on Vim 8.0+ with `+terminal`.
 - **No generated files.** Don't commit `doc/tags` or `build/`.
 - **No unnecessary comments.** Comments explain *why*, not *what*.
+- **Run `make check` before committing.** Lint + tests must pass.

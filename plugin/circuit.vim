@@ -1,6 +1,6 @@
 " vim-circuit: commands, keymaps, and configuration
 " Maintainer: inknos
-" License: MIT
+" License: GPL-3.0
 
 if exists('g:loaded_circuit')
   finish
@@ -16,7 +16,8 @@ endif
 " Configuration defaults
 " ---------------------------------------------------------------------------
 
-let g:circuit_command          = get(g:, 'circuit_command', 'claude')
+let g:circuit_provider         = get(g:, 'circuit_provider', 'claude')
+let g:circuit_command          = get(g:, 'circuit_command', '')
 let g:circuit_position         = get(g:, 'circuit_position', 'right')
 let g:circuit_split_ratio      = get(g:, 'circuit_split_ratio', 0.4)
 let g:circuit_enter_insert     = get(g:, 'circuit_enter_insert', 1)
@@ -49,10 +50,11 @@ let g:circuit_map_chat         = get(g:, 'circuit_map_chat', '<leader>ch')
 let g:circuit_map_verbose      = get(g:, 'circuit_map_verbose', '<leader>cv')
 let g:circuit_map_mode_plan    = get(g:, 'circuit_map_mode_plan', '<leader>cmp')
 let g:circuit_map_mode_fast    = get(g:, 'circuit_map_mode_fast', '<leader>cmf')
-let g:circuit_map_model_sonnet = get(g:, 'circuit_map_model_sonnet', '<leader>cms')
-let g:circuit_map_model_opus   = get(g:, 'circuit_map_model_opus', '<leader>cmo')
-let g:circuit_map_model_haiku  = get(g:, 'circuit_map_model_haiku', '<leader>cmh')
-let g:circuit_map_worktree    = get(g:, 'circuit_map_worktree', '<leader>cw')
+let g:circuit_map_worktree     = get(g:, 'circuit_map_worktree', '<leader>cw')
+let g:circuit_map_undo         = get(g:, 'circuit_map_undo', '<leader>cu')
+let g:circuit_map_redo         = get(g:, 'circuit_map_redo', '<leader>cU')
+let g:circuit_map_export       = get(g:, 'circuit_map_export', '<leader>ce')
+let g:circuit_map_sessions     = get(g:, 'circuit_map_sessions', '<leader>cl')
 
 " ---------------------------------------------------------------------------
 " Commands
@@ -79,6 +81,11 @@ command! -nargs=0 CTversion  call circuit#version()
 command! -nargs=0 CTsend     call circuit#send_selection()
 command! -nargs=0 CTchat     call circuit#chat()
 command! -nargs=? -bang CTworktree call circuit#worktree(<q-args>, <bang>0)
+command! -nargs=0 CTundo     call circuit#undo()
+command! -nargs=0 CTredo     call circuit#redo()
+command! -nargs=0 CTexport   call circuit#export()
+command! -nargs=0 CTstats    call circuit#stats()
+command! -nargs=0 CTsessions call circuit#sessions()
 
 function! s:dispatch(...) abort
   if a:0 == 0
@@ -124,10 +131,20 @@ function! s:dispatch(...) abort
     if a:0 >= 2
       call circuit#set_model(a:2)
     else
-      echoerr 'vim-circuit: model requires an argument (sonnet/opus/haiku or full model name)'
+      echoerr 'vim-circuit: model requires an argument'
     endif
   elseif l:cmd ==# 'worktree'
     call circuit#worktree(a:0 >= 2 ? a:2 : '', 0)
+  elseif l:cmd ==# 'undo'
+    call circuit#undo()
+  elseif l:cmd ==# 'redo'
+    call circuit#redo()
+  elseif l:cmd ==# 'export'
+    call circuit#export()
+  elseif l:cmd ==# 'stats'
+    call circuit#stats()
+  elseif l:cmd ==# 'sessions'
+    call circuit#sessions()
   elseif l:cmd ==# 'position'
     if a:0 >= 2
       call circuit#set_position(a:2)
@@ -170,10 +187,11 @@ if g:circuit_map_keys
   " Worktree
   execute 'nnoremap <silent> ' . g:circuit_map_worktree    . " :call circuit#worktree('', 0)<CR>"
 
-  " Model switching
-  execute 'nnoremap <silent> ' . g:circuit_map_model_sonnet . " :call circuit#set_model('sonnet')<CR>"
-  execute 'nnoremap <silent> ' . g:circuit_map_model_opus   . " :call circuit#set_model('opus')<CR>"
-  execute 'nnoremap <silent> ' . g:circuit_map_model_haiku  . " :call circuit#set_model('haiku')<CR>"
+  " Provider features
+  execute 'nnoremap <silent> ' . g:circuit_map_undo     . ' :call circuit#undo()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_redo     . ' :call circuit#redo()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_export   . ' :call circuit#export()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_sessions . ' :call circuit#sessions()<CR>'
 
   " Terminal-mode window navigation
   tnoremap <silent> <C-h> <C-\><C-n><C-w>h

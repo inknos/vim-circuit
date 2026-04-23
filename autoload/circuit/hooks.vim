@@ -1,6 +1,6 @@
 " vim-circuit: lifecycle hook utilities
 " Maintainer: inknos
-" License: MIT
+" License: GPL-3.0
 
 " Fire a User autocommand with CT prefix.
 " All hooks are silent -- if no autocmd is registered, nothing happens.

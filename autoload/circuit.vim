@@ -1,6 +1,6 @@
 " vim-circuit: core functions
 " Maintainer: inknos
-" License: MIT
+" License: GPL-3.0
 
 " ---------------------------------------------------------------------------
 " Internal state
@@ -38,28 +38,34 @@ function! s:git_root() abort
   return l:root
 endfunction
 
+function! s:provider() abort
+  return circuit#providers#current()
+endfunction
+
 function! s:build_cmd(...) abort
-  let l:cmd = s:get('command', 'claude')
+  let l:p = s:provider()
+  let l:override = s:get('command', '')
+  let l:cmd = !empty(l:override) ? l:override : l:p.command
   let l:extra = s:get('extra_args', '')
 
   let l:mode = s:current_mode
   if empty(l:mode)
     let l:mode = s:get('permission_mode', '')
   endif
-  if !empty(l:mode)
-    let l:cmd .= ' --permission-mode ' . l:mode
+  if !empty(l:mode) && !empty(l:p.permission_flag)
+    let l:cmd .= ' ' . l:p.permission_flag . ' ' . l:mode
   endif
 
   let l:model = s:current_model
   if empty(l:model)
     let l:model = s:get('model', '')
   endif
-  if !empty(l:model)
-    let l:cmd .= ' --model ' . l:model
+  if !empty(l:model) && !empty(l:p.model_flag)
+    let l:cmd .= ' ' . l:p.model_flag . ' ' . l:model
   endif
 
-  if s:verbose
-    let l:cmd .= ' --verbose'
+  if s:verbose && !empty(l:p.verbose_flag)
+    let l:cmd .= ' ' . l:p.verbose_flag
   endif
 
   if !empty(l:extra)
@@ -132,7 +138,7 @@ function! circuit#toggle() abort
       call s:show()
     endif
   else
-    let l:cmd = s:build_cmd('--continue')
+    let l:cmd = s:build_cmd(s:provider().continue)
     call s:open_with_cmd(l:cmd)
   endif
 endfunction
@@ -162,15 +168,20 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#resume() abort
+  let l:p = s:provider()
+  if empty(l:p.resume)
+    echo 'vim-circuit: resume not supported by ' . g:circuit_provider
+    return
+  endif
   call s:kill_term_if_alive()
-  let l:cmd = s:build_cmd('--resume')
+  let l:cmd = s:build_cmd(l:p.resume)
   call s:open_with_cmd(l:cmd)
   call circuit#hooks#fire('SessionChange')
 endfunction
 
 function! circuit#continue() abort
   call s:kill_term_if_alive()
-  let l:cmd = s:build_cmd('--continue')
+  let l:cmd = s:build_cmd(s:provider().continue)
   call s:open_with_cmd(l:cmd)
   call circuit#hooks#fire('SessionChange')
 endfunction
@@ -183,8 +194,13 @@ function! circuit#new() abort
 endfunction
 
 function! circuit#from_pr() abort
+  let l:p = s:provider()
+  if empty(l:p.from_pr_flag)
+    echo 'vim-circuit: from-pr not supported by ' . g:circuit_provider
+    return
+  endif
   call s:kill_term_if_alive()
-  let l:cmd = s:build_cmd('--from-pr')
+  let l:cmd = s:build_cmd(l:p.from_pr_flag)
   call s:open_with_cmd(l:cmd)
   call circuit#hooks#fire('SessionChange')
 endfunction
@@ -234,6 +250,12 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#set_mode(mode) abort
+  let l:p = s:provider()
+  if empty(l:p.modes)
+    echo 'vim-circuit: interactive modes not supported by ' . g:circuit_provider
+    return
+  endif
+
   if !s:term_alive()
     call circuit#toggle()
   else
@@ -243,7 +265,7 @@ function! circuit#set_mode(mode) abort
     endif
   endif
 
-  call term_sendkeys(s:term_bufnr, '/' . a:mode . "\n")
+  call term_sendkeys(s:term_bufnr, l:p.mode_prefix . a:mode . "\n")
   let s:current_mode = a:mode
   call circuit#hooks#fire('ModeChange')
 endfunction
@@ -253,9 +275,14 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#set_model(model) abort
+  let l:p = s:provider()
+  if empty(l:p.model_flag)
+    echo 'vim-circuit: model switching not supported by ' . g:circuit_provider
+    return
+  endif
   let s:current_model = a:model
   call s:kill_term_if_alive()
-  let l:cmd = s:build_cmd('--continue')
+  let l:cmd = s:build_cmd(l:p.continue)
   call s:open_with_cmd(l:cmd)
 endfunction
 
@@ -264,15 +291,23 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#worktree(name, bang) abort
+  let l:p = s:provider()
+  if empty(l:p.worktree_flag)
+    echo 'vim-circuit: worktree not supported by ' . g:circuit_provider
+    return
+  endif
+
   call s:kill_term_if_alive()
 
-  let l:cmd = s:get('command', 'claude') . ' --worktree'
+  let l:override = s:get('command', '')
+  let l:cmd = !empty(l:override) ? l:override : l:p.command
+  let l:cmd .= ' ' . l:p.worktree_flag
   if !empty(a:name)
     let l:cmd .= ' ' . a:name
   endif
   let l:use_tmux = a:bang || s:get('worktree_tmux', 0)
-  if l:use_tmux
-    let l:cmd .= ' --tmux'
+  if l:use_tmux && !empty(l:p.tmux_flag)
+    let l:cmd .= ' ' . l:p.tmux_flag
   endif
 
   let l:cwd = s:get('use_git_root', 1) ? s:git_root() : getcwd()
@@ -296,9 +331,14 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#toggle_verbose() abort
+  let l:p = s:provider()
+  if empty(l:p.verbose_flag)
+    echo 'vim-circuit: verbose not supported by ' . g:circuit_provider
+    return
+  endif
   let s:verbose = !s:verbose
   call s:kill_term_if_alive()
-  let l:cmd = s:build_cmd('--continue')
+  let l:cmd = s:build_cmd(l:p.continue)
   call s:open_with_cmd(l:cmd)
   echo 'vim-circuit: verbose ' . (s:verbose ? 'ON' : 'OFF')
 endfunction
@@ -405,17 +445,26 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#doctor() abort
-  let l:cmd = s:get('command', 'claude')
-  echo trim(system(l:cmd . ' doctor 2>&1'))
+  let l:p = s:provider()
+  if empty(l:p.doctor_cmd)
+    echo 'vim-circuit: health check not supported by ' . g:circuit_provider
+    return
+  endif
+  let l:override = s:get('command', '')
+  let l:bin = !empty(l:override) ? l:override : l:p.command
+  echo trim(system(l:bin . ' ' . l:p.doctor_cmd . ' 2>&1'))
 endfunction
 
 function! circuit#version() abort
-  let l:cmd = s:get('command', 'claude')
-  let l:cli_ver = trim(system(l:cmd . ' --version 2>&1'))
-  echo 'vim-circuit: 0.1.0'
-  echo 'claude cli:     ' . l:cli_ver
-  echo 'vim:            ' . v:version
-  echo 'terminal:       ' . (has('terminal') ? '+terminal' : '-terminal')
+  let l:p = s:provider()
+  let l:override = s:get('command', '')
+  let l:bin = !empty(l:override) ? l:override : l:p.command
+  let l:cli_ver = trim(system(l:bin . ' ' . l:p.version_flag . ' 2>&1'))
+  echo 'vim-circuit:  0.1.0'
+  echo 'provider:     ' . g:circuit_provider
+  echo 'cli version:  ' . l:cli_ver
+  echo 'vim:          ' . v:version
+  echo 'terminal:     ' . (has('terminal') ? '+terminal' : '-terminal')
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -467,6 +516,92 @@ function! s:reload_check(timer_id) abort
 endfunction
 
 " ---------------------------------------------------------------------------
+" Undo / Redo
+" ---------------------------------------------------------------------------
+
+function! circuit#undo() abort
+  let l:p = s:provider()
+  let l:cmd = get(l:p.slash_commands, 'undo', '')
+  if empty(l:cmd)
+    echo 'vim-circuit: undo not supported by ' . g:circuit_provider
+    return
+  endif
+  if !s:term_alive()
+    echo 'vim-circuit: no active terminal'
+    return
+  endif
+  call term_sendkeys(s:term_bufnr, l:cmd . "\n")
+  call circuit#hooks#fire('Undo')
+endfunction
+
+function! circuit#redo() abort
+  let l:p = s:provider()
+  let l:cmd = get(l:p.slash_commands, 'redo', '')
+  if empty(l:cmd)
+    echo 'vim-circuit: redo not supported by ' . g:circuit_provider
+    return
+  endif
+  if !s:term_alive()
+    echo 'vim-circuit: no active terminal'
+    return
+  endif
+  call term_sendkeys(s:term_bufnr, l:cmd . "\n")
+  call circuit#hooks#fire('Redo')
+endfunction
+
+" ---------------------------------------------------------------------------
+" Export
+" ---------------------------------------------------------------------------
+
+function! circuit#export() abort
+  let l:p = s:provider()
+  let l:cmd = get(l:p.slash_commands, 'export', '')
+  if empty(l:cmd)
+    echo 'vim-circuit: export not supported by ' . g:circuit_provider
+    return
+  endif
+  if !s:term_alive()
+    echo 'vim-circuit: no active terminal'
+    return
+  endif
+  call term_sendkeys(s:term_bufnr, l:cmd . "\n")
+  call circuit#hooks#fire('Export')
+endfunction
+
+" ---------------------------------------------------------------------------
+" Stats
+" ---------------------------------------------------------------------------
+
+function! circuit#stats() abort
+  let l:p = s:provider()
+  if empty(l:p.stats_cmd)
+    echo 'vim-circuit: stats not supported by ' . g:circuit_provider
+    return
+  endif
+  let l:override = s:get('command', '')
+  let l:bin = !empty(l:override) ? l:override : l:p.command
+  echo trim(system(l:bin . ' ' . l:p.stats_cmd . ' 2>&1'))
+endfunction
+
+" ---------------------------------------------------------------------------
+" Session list
+" ---------------------------------------------------------------------------
+
+function! circuit#sessions() abort
+  let l:p = s:provider()
+  if empty(l:p.session_list_cmd)
+    call circuit#resume()
+    return
+  endif
+  call s:kill_term_if_alive()
+  let l:override = s:get('command', '')
+  let l:bin = !empty(l:override) ? l:override : l:p.command
+  let l:cmd = l:bin . ' ' . l:p.session_list_cmd
+  call s:open_with_cmd(l:cmd)
+  call circuit#hooks#fire('SessionList')
+endfunction
+
+" ---------------------------------------------------------------------------
 " Tab-completion helper
 " ---------------------------------------------------------------------------
 
@@ -474,21 +609,20 @@ function! circuit#complete(arglead, cmdline, cursorpos) abort
   let l:parts = split(a:cmdline, '\s\+')
   let l:nparts = len(l:parts)
 
-  " Second word: subcommand
   if l:nparts <= 2
     let l:subs = ['resume', 'continue', 'new', 'kill', 'pr', 'worktree',
           \ 'plan', 'fast', 'mode', 'zoom', 'position', 'send', 'chat',
-          \ 'model', 'verbose', 'doctor', 'version']
+          \ 'model', 'verbose', 'doctor', 'version',
+          \ 'undo', 'redo', 'export', 'stats', 'sessions']
     return filter(copy(l:subs), 'v:val =~# "^" . a:arglead')
   endif
 
-  " Third word: sub-subcommand
   let l:sub = l:parts[1]
   if l:sub ==# 'mode'
-    let l:modes = ['plan', 'fast', 'normal']
+    let l:modes = circuit#providers#current().modes
     return filter(copy(l:modes), 'v:val =~# "^" . a:arglead')
   elseif l:sub ==# 'model'
-    let l:models = ['sonnet', 'opus', 'haiku']
+    let l:models = circuit#providers#current().models
     return filter(copy(l:models), 'v:val =~# "^" . a:arglead')
   elseif l:sub ==# 'position'
     let l:positions = ['right', 'left', 'top', 'bottom']

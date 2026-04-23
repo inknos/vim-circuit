@@ -1,0 +1,54 @@
+Execute (undo warns when unsupported by claude):
+  let g:circuit_provider = 'claude'
+  redir => output
+  silent call circuit#undo()
+  redir END
+  Assert output =~# 'undo not supported'
+
+Execute (redo warns when unsupported by claude):
+  let g:circuit_provider = 'claude'
+  redir => output
+  silent call circuit#redo()
+  redir END
+  Assert output =~# 'redo not supported'
+
+Execute (export warns when unsupported by claude):
+  let g:circuit_provider = 'claude'
+  redir => output
+  silent call circuit#export()
+  redir END
+  Assert output =~# 'export not supported'
+
+Execute (stats warns when unsupported by claude):
+  let g:circuit_provider = 'claude'
+  redir => output
+  silent call circuit#stats()
+  redir END
+  Assert output =~# 'stats not supported'
+
+Execute (undo with opencode warns about no terminal, not unsupported):
+  let g:circuit_provider = 'opencode'
+  redir => output
+  silent call circuit#undo()
+  redir END
+  Assert output =~# 'no active terminal'
+  Assert output !~# 'not supported'
+  let g:circuit_provider = 'claude'
+
+Execute (redo with opencode warns about no terminal, not unsupported):
+  let g:circuit_provider = 'opencode'
+  redir => output
+  silent call circuit#redo()
+  redir END
+  Assert output =~# 'no active terminal'
+  Assert output !~# 'not supported'
+  let g:circuit_provider = 'claude'
+
+Execute (export with opencode warns about no terminal, not unsupported):
+  let g:circuit_provider = 'opencode'
+  redir => output
+  silent call circuit#export()
+  redir END
+  Assert output =~# 'no active terminal'
+  Assert output !~# 'not supported'
+  let g:circuit_provider = 'claude'
