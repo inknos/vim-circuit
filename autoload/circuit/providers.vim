@@ -121,6 +121,13 @@ function! circuit#providers#list() abort
 endfunction
 
 function! circuit#providers#current() abort
-  let l:name = get(g:, 'circuit_provider', 'claude')
+  let l:name = get(g:, 'circuit_provider', '')
+  if empty(l:name)
+    return {}
+  endif
   return circuit#providers#get(l:name)
+endfunction
+
+function! circuit#providers#configured() abort
+  return !empty(get(g:, 'circuit_provider', ''))
 endfunction

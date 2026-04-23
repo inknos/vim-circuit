@@ -57,10 +57,20 @@ Execute (circuit#providers#current reads g:circuit_provider):
   AssertEqual 'opencode', p.command
   let g:circuit_provider = 'claude'
 
-Execute (circuit#providers#current defaults to claude):
-  unlet! g:circuit_provider
+Execute (circuit#providers#current returns empty dict when provider is empty):
+  let g:circuit_provider = ''
   let p = circuit#providers#current()
-  AssertEqual 'claude', p.command
+  AssertEqual {}, p
+  let g:circuit_provider = 'claude'
+
+Execute (circuit#providers#configured returns 0 when no provider set):
+  let g:circuit_provider = ''
+  AssertEqual 0, circuit#providers#configured()
+  let g:circuit_provider = 'claude'
+
+Execute (circuit#providers#configured returns 1 when provider set):
+  let g:circuit_provider = 'opencode'
+  AssertEqual 1, circuit#providers#configured()
   let g:circuit_provider = 'claude'
 
 Execute (all providers have the same set of keys):

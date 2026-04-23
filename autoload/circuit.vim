@@ -39,7 +39,44 @@ function! s:git_root() abort
 endfunction
 
 function! s:provider() abort
+  if !circuit#providers#configured()
+    return {}
+  endif
   return circuit#providers#current()
+endfunction
+
+function! s:needs_provider() abort
+  if circuit#providers#configured()
+    return 0
+  endif
+  call s:show_setup_guide()
+  return 1
+endfunction
+
+function! s:show_setup_guide() abort
+  call s:open_split()
+  setlocal buftype=nofile bufhidden=wipe noswapfile nobuflisted
+  setlocal nonumber norelativenumber signcolumn=no
+  let l:lines = [
+        \ '  vim-circuit: no provider configured',
+        \ '  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        \ '',
+        \ '  Add one of these to your .vimrc:',
+        \ '',
+        \ '    let g:circuit_provider = ''opencode''    (recommended)',
+        \ '    let g:circuit_provider = ''claude''',
+        \ '    let g:circuit_provider = ''gemini''',
+        \ '    let g:circuit_provider = ''agent''',
+        \ '',
+        \ '  Then reload Vim and run :CTerm',
+        \ '',
+        \ '  Each CLI must be installed and authenticated separately.',
+        \ '  vim-circuit does not manage API keys or credentials.',
+        \ '',
+        \ '  For details:  :help circuit-providers',
+        \ ]
+  call setline(1, l:lines)
+  setlocal nomodifiable
 endfunction
 
 function! s:build_cmd(...) abort
@@ -130,6 +167,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#toggle() abort
+  if s:needs_provider()
+    return
+  endif
   if s:term_alive()
     let l:winid = bufwinid(s:term_bufnr)
     if l:winid != -1
@@ -168,6 +208,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#resume() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.resume)
     echo 'vim-circuit: resume not supported by ' . g:circuit_provider
@@ -180,6 +223,9 @@ function! circuit#resume() abort
 endfunction
 
 function! circuit#continue() abort
+  if s:needs_provider()
+    return
+  endif
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd(s:provider().continue)
   call s:open_with_cmd(l:cmd)
@@ -187,6 +233,9 @@ function! circuit#continue() abort
 endfunction
 
 function! circuit#new() abort
+  if s:needs_provider()
+    return
+  endif
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd('')
   call s:open_with_cmd(l:cmd)
@@ -194,6 +243,9 @@ function! circuit#new() abort
 endfunction
 
 function! circuit#from_pr() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.from_pr_flag)
     echo 'vim-circuit: from-pr not supported by ' . g:circuit_provider
@@ -250,6 +302,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#set_mode(mode) abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.modes)
     echo 'vim-circuit: interactive modes not supported by ' . g:circuit_provider
@@ -275,6 +330,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#set_model(model) abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.model_flag)
     echo 'vim-circuit: model switching not supported by ' . g:circuit_provider
@@ -291,6 +349,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#worktree(name, bang) abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.worktree_flag)
     echo 'vim-circuit: worktree not supported by ' . g:circuit_provider
@@ -331,6 +392,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#toggle_verbose() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.verbose_flag)
     echo 'vim-circuit: verbose not supported by ' . g:circuit_provider
@@ -445,6 +509,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#doctor() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.doctor_cmd)
     echo 'vim-circuit: health check not supported by ' . g:circuit_provider
@@ -456,6 +523,9 @@ function! circuit#doctor() abort
 endfunction
 
 function! circuit#version() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   let l:override = s:get('command', '')
   let l:bin = !empty(l:override) ? l:override : l:p.command
@@ -520,6 +590,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#undo() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   let l:cmd = get(l:p.slash_commands, 'undo', '')
   if empty(l:cmd)
@@ -535,6 +608,9 @@ function! circuit#undo() abort
 endfunction
 
 function! circuit#redo() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   let l:cmd = get(l:p.slash_commands, 'redo', '')
   if empty(l:cmd)
@@ -554,6 +630,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#export() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   let l:cmd = get(l:p.slash_commands, 'export', '')
   if empty(l:cmd)
@@ -573,6 +652,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#stats() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.stats_cmd)
     echo 'vim-circuit: stats not supported by ' . g:circuit_provider
@@ -588,6 +670,9 @@ endfunction
 " ---------------------------------------------------------------------------
 
 function! circuit#sessions() abort
+  if s:needs_provider()
+    return
+  endif
   let l:p = s:provider()
   if empty(l:p.session_list_cmd)
     call circuit#resume()
@@ -618,11 +703,12 @@ function! circuit#complete(arglead, cmdline, cursorpos) abort
   endif
 
   let l:sub = l:parts[1]
+  let l:cur = circuit#providers#current()
   if l:sub ==# 'mode'
-    let l:modes = circuit#providers#current().modes
+    let l:modes = empty(l:cur) ? [] : l:cur.modes
     return filter(copy(l:modes), 'v:val =~# "^" . a:arglead')
   elseif l:sub ==# 'model'
-    let l:models = circuit#providers#current().models
+    let l:models = empty(l:cur) ? [] : l:cur.models
     return filter(copy(l:models), 'v:val =~# "^" . a:arglead')
   elseif l:sub ==# 'position'
     let l:positions = ['right', 'left', 'top', 'bottom']
