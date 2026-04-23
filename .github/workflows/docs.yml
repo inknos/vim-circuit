@@ -30,6 +30,16 @@ jobs:
           BACKGROUND: light
           COLORSCHEME: github
 
+      - name: Rename to index.html
+        run: |
+          cd build
+          for f in *.html; do
+            if [ "$f" != "index.html" ]; then
+              cp "$f" index.html
+              break
+            fi
+          done
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
