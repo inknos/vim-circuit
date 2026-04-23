@@ -1,0 +1,439 @@
+*circuit.txt*  Agent CLI terminal integration for Vim
+
+Author:  inknos
+License: MIT
+Version: 0.1.0
+
+==============================================================================
+CONTENTS                                              *circuit-contents*
+
+  1. Introduction ......................... |circuit-introduction|
+  2. Requirements ......................... |circuit-requirements|
+  3. Installation ......................... |circuit-installation|
+  4. Quick Start .......................... |circuit-quickstart|
+  5. Commands ............................. |circuit-commands|
+     5.1 Session Management ............... |circuit-session|
+     5.2 Mode Control .................... |circuit-modes|
+     5.3 Window Control .................. |circuit-window|
+     5.4 Code Context .................... |circuit-context|
+     5.5 Worktree ....................... |circuit-worktree|
+     5.6 Model & Config .................. |circuit-model|
+     5.7 Utility ......................... |circuit-utility|
+  6. Keymaps .............................. |circuit-keymaps|
+     6.1 Normal Mode ..................... |circuit-keymaps-normal|
+     6.2 Visual Mode ..................... |circuit-keymaps-visual|
+     6.3 Terminal Mode ................... |circuit-keymaps-terminal|
+  7. Tab-Completion ....................... |circuit-completion|
+  8. Hooks ................................ |circuit-hooks|
+  9. Configuration ........................ |circuit-configuration|
+     9.1 Core ............................ |circuit-config-core|
+     9.2 Auto-Reload .................... |circuit-config-reload|
+     9.3 Keymaps ......................... |circuit-config-keymaps|
+     9.4 Display ......................... |circuit-config-display|
+ 10. Troubleshooting ...................... |circuit-troubleshooting|
+
+==============================================================================
+1. Introduction                                   *circuit-introduction*
+
+vim-circuit brings any agent CLI directly into Vim using the built-in
+|:terminal| feature. It manages a persistent terminal session tied to
+your current project and git branch, and provides commands for session
+switching, permission mode control, model selection, and more.
+
+Key design principles:
+
+  - Single persistent terminal per project/branch (no spawning duplicates)
+  - Toggle show/hide without losing session state
+  - Every command reachable three ways: long form, short alias, keymap
+  - Every keymap and behavior configurable via |g:circuit_*| variables
+  - Lifecycle hooks via |User| autocommands for extensibility
+
+==============================================================================
+2. Requirements                                   *circuit-requirements*
+
+  - Vim 8.0+ compiled with |+terminal|
+  - An agent CLI (e.g. `claude`) installed and in $PATH
+  - Git
+
+==============================================================================
+3. Installation                                   *circuit-installation*
+
+vim-plug (local path): >
+  Plug '~/Documents/personal_projects/circuit'
+<
+vim-plug (GitHub, once published): >
+  Plug 'inknos/vim-circuit'
+<
+Native packages: >
+  git clone https://github.com/inknos/vim-circuit.git \
+    ~/.vim/pack/plugins/start/vim-circuit
+<
+After installing, run: >
+  :helptags ALL
+<
+
+==============================================================================
+4. Quick Start                                     *circuit-quickstart*
+
+Open an agent terminal:                            *:CTerm* *:CT*
+>
+  :CTerm
+  " or press <leader>c
+<
+The session persists -- toggling hides and restores the same terminal.
+
+Resume an older session interactively:             *:CTerm-resume*
+>
+  :CTerm resume
+  " or press <leader>cr
+<
+Switch to plan mode:                               *:CTerm-mode*
+>
+  :CTerm mode plan
+  " or press <leader>cmp
+<
+
+==============================================================================
+5. Commands                                         *circuit-commands*
+
+All commands support the dispatcher form `:CTerm {subcommand}` and short
+aliases. Tab-completion is available for all subcommands and their
+arguments.
+
+------------------------------------------------------------------------------
+5.1 Session Management                                *circuit-session*
+
+                                                      *:CTerm-toggle*
+:CTerm                  Toggle the agent terminal. Resumes the most recent
+:CT                     session in the current directory (`--continue`), or
+                        starts a new one if none exists. Shows/hides if a
+                        session is already running.
+
+                                                      *:CTresume*
+:CTerm resume           Open the interactive session picker
+:CTresume               (`--resume`). Kills the current terminal first if
+                        one is running.
+
+                                                      *:CTcontinue*
+:CTerm continue         Resume the most recent conversation in the current
+:CTcontinue             directory (`--continue`).
+
+                                                      *:CTnew*
+:CTerm new              Kill the current session and start a brand new one.
+:CTnew
+
+                                                      *:CTkill*
+:CTerm kill             Kill the terminal buffer entirely.
+:CTkill
+
+                                                      *:CTpr*
+:CTerm pr               Resume a session linked to a PR (`--from-pr`).
+:CTpr                   Opens an interactive PR picker.
+
+------------------------------------------------------------------------------
+5.2 Mode Control                                       *circuit-modes*
+
+The agent CLI may support interactive modes. These commands send the
+corresponding slash command (`/plan`, `/fast`) to the running session --
+no restart needed. If no session is running, one is opened first.
+
+                                                      *:CTplan*
+:CTerm plan             Toggle plan mode. The agent focuses on designing an
+:CTplan                 implementation strategy without making changes. It
+                        can research and explore the codebase but won't
+                        edit files or write code. Toggle again (or send
+                        `/plan`) to exit back to normal mode.
+
+                                                      *:CTfast*
+:CTerm fast             Toggle fast mode. Uses the same model but with
+:CTfast                 faster output. Good for simpler tasks where speed
+                        matters more than deep reasoning.
+
+:CTerm mode {mode}      Send `/{mode}` to the running session. {mode} can
+                        be `plan`, `fast`, or `normal` (which toggles plan
+                        off if active).
+
+------------------------------------------------------------------------------
+5.3 Window Control                                    *circuit-window*
+
+                                                      *:CTzoom*
+:CTerm zoom             Toggle zoom: maximize the terminal to full-screen,
+:CTzoom                 or restore the previous split layout. Works like
+                        tmux's `<prefix>z`.
+
+                                                      *:CTerm-position*
+:CTerm position {pos}   Move the terminal to a different split position.
+                        {pos} is one of: `right`, `left`, `top`, `bottom`.
+                        The terminal is hidden and re-shown at the new
+                        position.
+
+------------------------------------------------------------------------------
+5.4 Code Context                                     *circuit-context*
+
+                                                      *:CTsend*
+:CTerm send             Send the current visual selection to the agent
+:CTsend                 terminal. The text is prefixed with the filename
+                        for context. Use in visual mode.
+
+                                                      *:CTchat*
+:CTerm chat             Prompt for a free-form message and send it to the
+:CTchat                 agent. The current alternate file name is included
+                        as context. Opens the terminal if not visible.
+
+------------------------------------------------------------------------------
+5.5 Worktree                                         *circuit-worktree*
+
+                                                      *:CTworktree*
+:CTworktree [name]      Launch the agent in a git worktree via
+:CTerm worktree [name]  `--worktree`. If [name] is given, it is passed as
+                        the worktree argument. The agent creates an
+                        isolated worktree for the task, keeping your
+                        working tree clean.
+
+:CTworktree! [name]     With a bang, adds `--tmux` so the agent runs the
+                        worktree session in a tmux pane rather than
+                        inline. Also triggered when
+                        |g:circuit_worktree_tmux| is `1`.
+
+------------------------------------------------------------------------------
+5.6 Model & Config                                    *circuit-model*
+
+                                                      *:CTmodel*
+:CTerm model {name}     Kill the current session and restart with the given
+:CTmodel {name}         model. {name} can be an alias (`sonnet`, `opus`,
+                        `haiku`) or a full model name (e.g.
+                        `claude-sonnet-4-6`).
+
+                                                      *:CTverbose*
+:CTerm verbose          Toggle verbose mode. Kills and restarts the session
+:CTverbose              with or without `--verbose`.
+
+------------------------------------------------------------------------------
+5.7 Utility                                          *circuit-utility*
+
+                                                      *:CTdoctor*
+:CTerm doctor           Run the agent's doctor command and display the
+:CTdoctor               health check results in the message area.
+
+                                                      *:CTversion*
+:CTerm version          Show the plugin version, agent CLI version, Vim
+:CTversion              version, and +terminal support status.
+
+==============================================================================
+6. Keymaps                                           *circuit-keymaps*
+
+All keymaps are registered only if |g:circuit_map_keys| is 1 (default).
+Every keymap is configurable via the corresponding `g:circuit_map_*`
+variable.
+
+------------------------------------------------------------------------------
+6.1 Normal Mode                                *circuit-keymaps-normal*
+
+  Key              Command         Variable ~
+  <leader>c        Toggle          |g:circuit_map_toggle|
+  <leader>cr       Resume          |g:circuit_map_resume|
+  <leader>cc       Continue        |g:circuit_map_continue|
+  <leader>cn       New session     |g:circuit_map_new|
+  <leader>ck       Kill            |g:circuit_map_kill|
+  <leader>cp       From PR         |g:circuit_map_pr|
+  <leader>cz       Zoom toggle     |g:circuit_map_zoom|
+  <leader>ch       Chat            |g:circuit_map_chat|
+  <leader>cv       Verbose toggle  |g:circuit_map_verbose|
+  <leader>cw       Worktree        |g:circuit_map_worktree|
+  <leader>cmp      Mode: plan      |g:circuit_map_mode_plan|
+  <leader>cmf      Mode: fast      |g:circuit_map_mode_fast|
+  <leader>cms      Model: sonnet   |g:circuit_map_model_sonnet|
+  <leader>cmo      Model: opus     |g:circuit_map_model_opus|
+  <leader>cmh      Model: haiku    |g:circuit_map_model_haiku|
+
+------------------------------------------------------------------------------
+6.2 Visual Mode                                *circuit-keymaps-visual*
+
+  Key              Command         Variable ~
+  <leader>cs       Send selection  |g:circuit_map_send|
+
+------------------------------------------------------------------------------
+6.3 Terminal Mode                            *circuit-keymaps-terminal*
+
+These keymaps are active when the cursor is inside any terminal buffer.
+
+  Key              Action ~
+  <C-w>z           Zoom toggle (|g:circuit_map_zoom_term|)
+  <C-h>            Navigate to window left
+  <C-j>            Navigate to window below
+  <C-k>            Navigate to window above
+  <C-l>            Navigate to window right
+  <C-v>            Paste from system clipboard
+
+==============================================================================
+7. Tab-Completion                                  *circuit-completion*
+
+`:CTerm` supports context-aware tab-completion:
+
+  :CTerm <Tab>           Completes subcommands: `resume`, `continue`,
+                         `new`, `kill`, `pr`, `worktree`, `plan`,
+                         `fast`, `mode`, `zoom`, `position`, `send`,
+                         `chat`, `model`, `verbose`, `doctor`,
+                         `version`.
+
+  :CTerm mode <Tab>      Completes: `plan`, `fast`, `normal`.
+
+  :CTerm model <Tab>     Completes: `sonnet`, `opus`, `haiku`.
+
+  :CTerm position <Tab>  Completes: `right`, `left`, `top`, `bottom`.
+
+==============================================================================
+8. Hooks                                               *circuit-hooks*
+
+The plugin fires |User| autocommands with a `CT` prefix at various
+lifecycle points. Hook into them in your |vimrc|:
+>
+  autocmd User CTOpen echo "Agent session started"
+  autocmd User CTReload echohl WarningMsg
+        \ | echo "Buffers reloaded" | echohl None
+<
+
+Available events:
+
+  Event                   When fired ~
+  CTOpen                  Terminal buffer created for the first time
+  CTToggleShow            Terminal shown (unhidden)
+  CTToggleHide            Terminal hidden
+  CTKill                  Terminal killed
+  CTZoomIn                Terminal zoomed to full-screen
+  CTZoomOut               Terminal restored from zoom
+  CTReload                One or more buffers auto-reloaded
+  CTModeChange            Permission mode changed
+  CTSessionChange         Session switched (resume/continue/new/pr)
+  CTWorktree              Worktree session launched
+
+==============================================================================
+9. Configuration                               *circuit-configuration*
+
+All variables use the `g:circuit_` prefix. Buffer-local `b:circuit_*`
+overrides take precedence over global values.
+
+Set variables in your |vimrc| before the plugin loads, or at any time
+(most take effect on the next command invocation).
+
+------------------------------------------------------------------------------
+9.1 Core                                        *circuit-config-core*
+
+                                                *g:circuit_command*
+g:circuit_command            String (default: `'claude'`)
+                             CLI executable name or full path.
+
+                                                *g:circuit_position*
+g:circuit_position           String (default: `'right'`)
+                             Window position: `'right'`, `'left'`, `'top'`,
+                             `'bottom'`.
+
+                                                *g:circuit_split_ratio*
+g:circuit_split_ratio        Float (default: `0.4`)
+                             Terminal size as a fraction of the screen
+                             (0.0 to 1.0).
+
+                                                *g:circuit_enter_insert*
+g:circuit_enter_insert       Number (default: `1`)
+                             Auto-enter terminal (insert) mode when the
+                             agent window gains focus.
+
+                                                *g:circuit_use_git_root*
+g:circuit_use_git_root       Number (default: `1`)
+                             Start the agent at the git repository root
+                             instead of the current working directory.
+
+                                                *g:circuit_permission_mode*
+g:circuit_permission_mode    String (default: `''`)
+                             Default `--permission-mode` passed at CLI
+                             startup. Controls tool approval behavior.
+                             Empty means CLI default. Valid values:
+                             `'default'`, `'plan'`, `'auto'`,
+                             `'acceptEdits'`, `'dontAsk'`,
+                             `'bypassPermissions'`.
+                             Note: this is separate from the interactive
+                             modes toggled by |:CTplan| and |:CTfast|.
+
+                                                *g:circuit_model*
+g:circuit_model              String (default: `''`)
+                             Default `--model` override. Empty means CLI
+                             default. Can be an alias (`'sonnet'`) or a
+                             full name (`'claude-sonnet-4-6'`).
+
+                                                *g:circuit_extra_args*
+g:circuit_extra_args         String (default: `''`)
+                             Extra CLI arguments appended to every agent
+                             invocation. Example: `'--add-dir /tmp/data'`.
+
+                                                *g:circuit_worktree_tmux*
+g:circuit_worktree_tmux      Number (default: `0`)
+                             When `1`, `:CTworktree` always passes `--tmux`
+                             to `--worktree`, running the session in a tmux
+                             pane instead of inside the Vim terminal. Can
+                             also be toggled per-call with `:CTworktree!`.
+
+------------------------------------------------------------------------------
+9.2 Auto-Reload                                *circuit-config-reload*
+
+                                                *g:circuit_auto_reload*
+g:circuit_auto_reload        Number (default: `1`)
+                             Enable buffer auto-reload polling while the
+                             agent terminal is active. Uses a timer to
+                             detect files changed on disk and runs
+                             |:checktime| on them.
+
+                                                *g:circuit_reload_interval*
+g:circuit_reload_interval    Number (default: `1000`)
+                             Polling interval in milliseconds.
+
+                                                *g:circuit_notify_reload*
+g:circuit_notify_reload      Number (default: `1`)
+                             Echo a notification when buffers are reloaded.
+
+------------------------------------------------------------------------------
+9.3 Keymaps                                   *circuit-config-keymaps*
+
+                                                *g:circuit_map_keys*
+g:circuit_map_keys           Number (default: `1`)
+                             Set to `0` to disable all default keymaps.
+                             You can then define your own.
+
+Each keymap has its own variable. See |circuit-keymaps| for the full
+list. Example override:
+>
+  let g:circuit_map_toggle = '<F5>'
+  let g:circuit_map_zoom = '<leader>z'
+<
+
+------------------------------------------------------------------------------
+9.4 Display                                   *circuit-config-display*
+
+                                                *g:circuit_hide_numbers*
+g:circuit_hide_numbers       Number (default: `1`)
+                             Hide line numbers in the terminal window.
+
+                                                *g:circuit_hide_signcolumn*
+g:circuit_hide_signcolumn    Number (default: `1`)
+                             Hide the sign column in the terminal window.
+
+==============================================================================
+10. Troubleshooting                           *circuit-troubleshooting*
+
+Terminal does not open~
+  Verify `vim --version | grep +terminal`. This plugin requires Vim
+  compiled with +terminal.
+
+Agent CLI not found~
+  Ensure the agent CLI is in `$PATH`. Run `:CTdoctor` for a health check.
+
+Buffers not reloading~
+  Check that `g:circuit_auto_reload` is `1` and that |'autoread'| is
+  not globally disabled. You can also set `set autoread` in your vimrc.
+
+Keymaps conflict~
+  Set `g:circuit_map_keys = 0` to disable all defaults, then define
+  your own mappings. Or override individual keys via the
+  `g:circuit_map_*` variables.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:

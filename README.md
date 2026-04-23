@@ -1,25 +1,25 @@
-# vim-claudeterm
+# vim-circuit
 
-Claude CLI terminal integration for Vim. One keypress opens Claude in a split.
+Agent CLI terminal integration for Vim. One keypress opens your agent in a split.
 Another hides it. Your session persists across toggles.
 
 ## Features
 
-- **Persistent terminal** with automatic session resume via `claude --continue`
+- **Persistent terminal** with automatic session resume via `--continue`
 - **Session switching**: resume, continue, new, from-PR -- all tab-completable
-- **Worktree support**: `claude --worktree` integration with optional tmux mode
+- **Worktree support**: `--worktree` integration with optional tmux mode
 - **Mode control**: plan, auto, default, acceptEdits via `--permission-mode`
 - **Model switching**: sonnet, opus, haiku, or any full model name
-- **Zoom toggle**: maximize/restore the Claude split (tmux-style)
-- **Send selection**: pipe visual selection to Claude with file context
-- **Auto buffer reload**: detects files changed by Claude and reloads them
-- **Lifecycle hooks**: `User ClaudeTermOpen`, `ClaudeTermReload`, etc.
-- **Fully configurable**: every keymap, behavior, and CLI flag via `g:claudeterm_*`
+- **Zoom toggle**: maximize/restore the agent split (tmux-style)
+- **Send selection**: pipe visual selection to the agent with file context
+- **Auto buffer reload**: detects files changed by the agent and reloads them
+- **Lifecycle hooks**: `User CTOpen`, `CTReload`, etc.
+- **Fully configurable**: every keymap, behavior, and CLI flag via `g:circuit_*`
 
 ## Requirements
 
 - Vim 8.0+ with `+terminal`
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) in `$PATH`
+- An agent CLI (e.g. [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)) in `$PATH`
 - Git
 
 ## Installation
@@ -27,20 +27,20 @@ Another hides it. Your session persists across toggles.
 ### vim-plug (local)
 
 ```vim
-Plug '~/Documents/personal_projects/claudeterm'
+Plug '~/Documents/personal_projects/circuit'
 ```
 
 ### vim-plug (GitHub)
 
 ```vim
-Plug 'inknos/vim-claudeterm'
+Plug 'inknos/vim-circuit'
 ```
 
 ### Native packages
 
 ```bash
-git clone https://github.com/inknos/vim-claudeterm.git \
-  ~/.vim/pack/plugins/start/vim-claudeterm
+git clone https://github.com/inknos/vim-circuit.git \
+  ~/.vim/pack/plugins/start/vim-circuit
 ```
 
 Then run `:helptags ALL` in Vim.
@@ -48,7 +48,7 @@ Then run `:helptags ALL` in Vim.
 ## Quick Start
 
 ```vim
-:CTerm          " Toggle Claude terminal (or <leader>c)
+:CTerm          " Toggle agent terminal (or <leader>c)
 :CTerm resume   " Interactive session picker (or <leader>cr)
 :CTerm plan     " Toggle plan mode (or <leader>cmp)
 :CTerm fast     " Toggle fast mode (or <leader>cmf)
@@ -83,31 +83,31 @@ Then run `:helptags ALL` in Vim.
 Set any of these in your `.vimrc` before the plugin loads:
 
 ```vim
-let g:claudeterm_position = 'bottom'       " right (default), left, top, bottom
-let g:claudeterm_split_ratio = 0.3         " fraction of screen (default 0.4)
-let g:claudeterm_permission_mode = 'plan'  " default mode for new sessions
-let g:claudeterm_model = 'sonnet'          " default model
-let g:claudeterm_worktree_tmux = 1        " always use tmux for worktree
-let g:claudeterm_map_keys = 0              " disable all default keymaps
+let g:circuit_position = 'bottom'       " right (default), left, top, bottom
+let g:circuit_split_ratio = 0.3         " fraction of screen (default 0.4)
+let g:circuit_permission_mode = 'plan'  " default mode for new sessions
+let g:circuit_model = 'sonnet'          " default model
+let g:circuit_worktree_tmux = 1        " always use tmux for worktree
+let g:circuit_map_keys = 0              " disable all default keymaps
 ```
 
-See `:help claudeterm-configuration` for the full list.
+See `:help circuit-configuration` for the full list.
 
 ## Hooks
 
 ```vim
-autocmd User ClaudeTermOpen echo "Claude session started"
-autocmd User ClaudeTermReload echohl WarningMsg | echo "Buffers reloaded" | echohl None
+autocmd User CTOpen echo "Agent session started"
+autocmd User CTReload echohl WarningMsg | echo "Buffers reloaded" | echohl None
 ```
 
 Events: `Open`, `ToggleShow`, `ToggleHide`, `Kill`, `ZoomIn`, `ZoomOut`,
 `Reload`, `ModeChange`, `SessionChange`, `Worktree`.
 
-See `:help claudeterm-hooks` for details.
+See `:help circuit-hooks` for details.
 
 ## Documentation
 
-Full documentation is available via `:help claudeterm` after installation.
+Full documentation is available via `:help circuit` after installation.
 
 HTML docs are generated from the vimdoc source and available as a CI artifact
 on the Actions tab.

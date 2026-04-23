@@ -1,0 +1,193 @@
+" vim-circuit: commands, keymaps, and configuration
+" Maintainer: inknos
+" License: MIT
+
+if exists('g:loaded_circuit')
+  finish
+endif
+let g:loaded_circuit = 1
+
+if !has('terminal')
+  echoerr 'vim-circuit requires Vim compiled with +terminal'
+  finish
+endif
+
+" ---------------------------------------------------------------------------
+" Configuration defaults
+" ---------------------------------------------------------------------------
+
+let g:circuit_command          = get(g:, 'circuit_command', 'claude')
+let g:circuit_position         = get(g:, 'circuit_position', 'right')
+let g:circuit_split_ratio      = get(g:, 'circuit_split_ratio', 0.4)
+let g:circuit_enter_insert     = get(g:, 'circuit_enter_insert', 1)
+let g:circuit_use_git_root     = get(g:, 'circuit_use_git_root', 1)
+let g:circuit_permission_mode  = get(g:, 'circuit_permission_mode', '')
+let g:circuit_model            = get(g:, 'circuit_model', '')
+let g:circuit_extra_args       = get(g:, 'circuit_extra_args', '')
+let g:circuit_worktree_tmux    = get(g:, 'circuit_worktree_tmux', 0)
+
+let g:circuit_auto_reload      = get(g:, 'circuit_auto_reload', 1)
+let g:circuit_reload_interval  = get(g:, 'circuit_reload_interval', 1000)
+let g:circuit_notify_reload    = get(g:, 'circuit_notify_reload', 1)
+
+let g:circuit_hide_numbers     = get(g:, 'circuit_hide_numbers', 1)
+let g:circuit_hide_signcolumn  = get(g:, 'circuit_hide_signcolumn', 1)
+
+let g:circuit_map_keys         = get(g:, 'circuit_map_keys', 1)
+
+" Keymap variables (all overridable)
+let g:circuit_map_toggle       = get(g:, 'circuit_map_toggle', '<leader>c')
+let g:circuit_map_resume       = get(g:, 'circuit_map_resume', '<leader>cr')
+let g:circuit_map_continue     = get(g:, 'circuit_map_continue', '<leader>cc')
+let g:circuit_map_new          = get(g:, 'circuit_map_new', '<leader>cn')
+let g:circuit_map_kill         = get(g:, 'circuit_map_kill', '<leader>ck')
+let g:circuit_map_pr           = get(g:, 'circuit_map_pr', '<leader>cp')
+let g:circuit_map_zoom         = get(g:, 'circuit_map_zoom', '<leader>cz')
+let g:circuit_map_zoom_term    = get(g:, 'circuit_map_zoom_term', '<C-w>z')
+let g:circuit_map_send         = get(g:, 'circuit_map_send', '<leader>cs')
+let g:circuit_map_chat         = get(g:, 'circuit_map_chat', '<leader>ch')
+let g:circuit_map_verbose      = get(g:, 'circuit_map_verbose', '<leader>cv')
+let g:circuit_map_mode_plan    = get(g:, 'circuit_map_mode_plan', '<leader>cmp')
+let g:circuit_map_mode_fast    = get(g:, 'circuit_map_mode_fast', '<leader>cmf')
+let g:circuit_map_model_sonnet = get(g:, 'circuit_map_model_sonnet', '<leader>cms')
+let g:circuit_map_model_opus   = get(g:, 'circuit_map_model_opus', '<leader>cmo')
+let g:circuit_map_model_haiku  = get(g:, 'circuit_map_model_haiku', '<leader>cmh')
+let g:circuit_map_worktree    = get(g:, 'circuit_map_worktree', '<leader>cw')
+
+" ---------------------------------------------------------------------------
+" Commands
+" ---------------------------------------------------------------------------
+
+" Main dispatcher
+command! -nargs=* -complete=customlist,circuit#complete CTerm call s:dispatch(<f-args>)
+
+" Short aliases
+command! -nargs=0 CT         call circuit#toggle()
+command! -nargs=0 CTresume   call circuit#resume()
+command! -nargs=0 CTcontinue call circuit#continue()
+command! -nargs=0 CTnew      call circuit#new()
+command! -nargs=0 CTkill     call circuit#kill()
+command! -nargs=0 CTpr       call circuit#from_pr()
+command! -nargs=0 CTzoom     call circuit#zoom()
+command! -nargs=0 CTplan     call circuit#set_mode('plan')
+command! -nargs=0 CTfast     call circuit#set_mode('fast')
+command! -nargs=0 CTnormal   call circuit#set_mode('plan')
+command! -nargs=1 CTmodel    call circuit#set_model(<f-args>)
+command! -nargs=0 CTverbose  call circuit#toggle_verbose()
+command! -nargs=0 CTdoctor   call circuit#doctor()
+command! -nargs=0 CTversion  call circuit#version()
+command! -nargs=0 CTsend     call circuit#send_selection()
+command! -nargs=0 CTchat     call circuit#chat()
+command! -nargs=? -bang CTworktree call circuit#worktree(<q-args>, <bang>0)
+
+function! s:dispatch(...) abort
+  if a:0 == 0
+    call circuit#toggle()
+    return
+  endif
+
+  let l:cmd = a:1
+
+  if l:cmd ==# 'resume'
+    call circuit#resume()
+  elseif l:cmd ==# 'continue'
+    call circuit#continue()
+  elseif l:cmd ==# 'new'
+    call circuit#new()
+  elseif l:cmd ==# 'kill'
+    call circuit#kill()
+  elseif l:cmd ==# 'pr'
+    call circuit#from_pr()
+  elseif l:cmd ==# 'zoom'
+    call circuit#zoom()
+  elseif l:cmd ==# 'send'
+    call circuit#send_selection()
+  elseif l:cmd ==# 'chat'
+    call circuit#chat()
+  elseif l:cmd ==# 'verbose'
+    call circuit#toggle_verbose()
+  elseif l:cmd ==# 'doctor'
+    call circuit#doctor()
+  elseif l:cmd ==# 'version'
+    call circuit#version()
+  elseif l:cmd ==# 'plan'
+    call circuit#set_mode('plan')
+  elseif l:cmd ==# 'fast'
+    call circuit#set_mode('fast')
+  elseif l:cmd ==# 'mode'
+    if a:0 >= 2
+      call circuit#set_mode(a:2)
+    else
+      echoerr 'vim-circuit: mode requires an argument (plan/fast/normal)'
+    endif
+  elseif l:cmd ==# 'model'
+    if a:0 >= 2
+      call circuit#set_model(a:2)
+    else
+      echoerr 'vim-circuit: model requires an argument (sonnet/opus/haiku or full model name)'
+    endif
+  elseif l:cmd ==# 'worktree'
+    call circuit#worktree(a:0 >= 2 ? a:2 : '', 0)
+  elseif l:cmd ==# 'position'
+    if a:0 >= 2
+      call circuit#set_position(a:2)
+    else
+      echoerr 'vim-circuit: position requires an argument (right/left/top/bottom)'
+    endif
+  else
+    echoerr 'vim-circuit: unknown subcommand "' . l:cmd . '"'
+  endif
+endfunction
+
+" ---------------------------------------------------------------------------
+" Keymaps
+" ---------------------------------------------------------------------------
+
+if g:circuit_map_keys
+  " Session management
+  execute 'nnoremap <silent> ' . g:circuit_map_toggle   . ' :call circuit#toggle()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_resume   . ' :call circuit#resume()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_continue . ' :call circuit#continue()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_new      . ' :call circuit#new()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_kill     . ' :call circuit#kill()<CR>'
+  execute 'nnoremap <silent> ' . g:circuit_map_pr       . ' :call circuit#from_pr()<CR>'
+
+  " Window
+  execute 'nnoremap <silent> ' . g:circuit_map_zoom     . ' :call circuit#zoom()<CR>'
+  execute 'tnoremap <silent> ' . g:circuit_map_zoom_term . ' <C-\><C-n>:call circuit#zoom()<CR>'
+
+  " Code context
+  execute 'vnoremap <silent> ' . g:circuit_map_send     . " :<C-u>call circuit#send_selection()<CR>"
+  execute 'nnoremap <silent> ' . g:circuit_map_chat     . ' :call circuit#chat()<CR>'
+
+  " Verbose
+  execute 'nnoremap <silent> ' . g:circuit_map_verbose  . ' :call circuit#toggle_verbose()<CR>'
+
+  " Mode control (sends /plan or /fast slash commands to the session)
+  execute 'nnoremap <silent> ' . g:circuit_map_mode_plan . " :call circuit#set_mode('plan')<CR>"
+  execute 'nnoremap <silent> ' . g:circuit_map_mode_fast . " :call circuit#set_mode('fast')<CR>"
+
+  " Worktree
+  execute 'nnoremap <silent> ' . g:circuit_map_worktree    . " :call circuit#worktree('', 0)<CR>"
+
+  " Model switching
+  execute 'nnoremap <silent> ' . g:circuit_map_model_sonnet . " :call circuit#set_model('sonnet')<CR>"
+  execute 'nnoremap <silent> ' . g:circuit_map_model_opus   . " :call circuit#set_model('opus')<CR>"
+  execute 'nnoremap <silent> ' . g:circuit_map_model_haiku  . " :call circuit#set_model('haiku')<CR>"
+
+  " Terminal-mode window navigation
+  tnoremap <silent> <C-h> <C-\><C-n><C-w>h
+  tnoremap <silent> <C-j> <C-\><C-n><C-w>j
+  tnoremap <silent> <C-k> <C-\><C-n><C-w>k
+  tnoremap <silent> <C-l> <C-\><C-n><C-w>l
+  tnoremap <silent> <C-v> <C-\><C-n>"+pi
+endif
+
+" ---------------------------------------------------------------------------
+" Autocommands
+" ---------------------------------------------------------------------------
+
+augroup circuit_autoread
+  autocmd!
+  autocmd FocusGained,BufEnter * if get(g:, 'circuit_auto_reload', 1) | checktime | endif
+augroup END

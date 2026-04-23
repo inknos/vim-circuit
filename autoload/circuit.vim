@@ -1,4 +1,4 @@
-" vim-claudeterm: core functions
+" vim-circuit: core functions
 " Maintainer: inknos
 " License: MIT
 
@@ -19,8 +19,8 @@ let s:verbose = 0
 " ---------------------------------------------------------------------------
 
 function! s:get(name, default) abort
-  let l:bvar = 'b:claudeterm_' . a:name
-  let l:gvar = 'g:claudeterm_' . a:name
+  let l:bvar = 'b:circuit_' . a:name
+  let l:gvar = 'g:circuit_' . a:name
   if exists(l:bvar)
     return eval(l:bvar)
   endif
@@ -123,7 +123,7 @@ endfunction
 " Toggle
 " ---------------------------------------------------------------------------
 
-function! claudeterm#toggle() abort
+function! circuit#toggle() abort
   if s:term_alive()
     let l:winid = bufwinid(s:term_bufnr)
     if l:winid != -1
@@ -143,7 +143,7 @@ function! s:show() abort
   let s:term_winid = win_getid()
 
   call s:configure_term_window()
-  call claudeterm#hooks#fire('ToggleShow')
+  call circuit#hooks#fire('ToggleShow')
   call s:focus_term()
 endfunction
 
@@ -154,44 +154,44 @@ function! s:hide() abort
     execute l:winnr . 'wincmd w'
     hide
   endif
-  call claudeterm#hooks#fire('ToggleHide')
+  call circuit#hooks#fire('ToggleHide')
 endfunction
 
 " ---------------------------------------------------------------------------
 " Session management
 " ---------------------------------------------------------------------------
 
-function! claudeterm#resume() abort
+function! circuit#resume() abort
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd('--resume')
   call s:open_with_cmd(l:cmd)
-  call claudeterm#hooks#fire('SessionChange')
+  call circuit#hooks#fire('SessionChange')
 endfunction
 
-function! claudeterm#continue() abort
+function! circuit#continue() abort
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd('--continue')
   call s:open_with_cmd(l:cmd)
-  call claudeterm#hooks#fire('SessionChange')
+  call circuit#hooks#fire('SessionChange')
 endfunction
 
-function! claudeterm#new() abort
+function! circuit#new() abort
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd('')
   call s:open_with_cmd(l:cmd)
-  call claudeterm#hooks#fire('SessionChange')
+  call circuit#hooks#fire('SessionChange')
 endfunction
 
-function! claudeterm#from_pr() abort
+function! circuit#from_pr() abort
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd('--from-pr')
   call s:open_with_cmd(l:cmd)
-  call claudeterm#hooks#fire('SessionChange')
+  call circuit#hooks#fire('SessionChange')
 endfunction
 
-function! claudeterm#kill() abort
+function! circuit#kill() abort
   call s:kill_term_if_alive()
-  call claudeterm#hooks#fire('Kill')
+  call circuit#hooks#fire('Kill')
 endfunction
 
 function! s:kill_term_if_alive() abort
@@ -225,7 +225,7 @@ function! s:open_with_cmd(cmd) abort
 
   call s:configure_term_window()
   call s:start_reload_timer()
-  call claudeterm#hooks#fire('Open')
+  call circuit#hooks#fire('Open')
   call s:focus_term()
 endfunction
 
@@ -233,9 +233,9 @@ endfunction
 " Mode control (sends slash commands to the running session)
 " ---------------------------------------------------------------------------
 
-function! claudeterm#set_mode(mode) abort
+function! circuit#set_mode(mode) abort
   if !s:term_alive()
-    call claudeterm#toggle()
+    call circuit#toggle()
   else
     let l:winid = bufwinid(s:term_bufnr)
     if l:winid == -1
@@ -245,14 +245,14 @@ function! claudeterm#set_mode(mode) abort
 
   call term_sendkeys(s:term_bufnr, '/' . a:mode . "\n")
   let s:current_mode = a:mode
-  call claudeterm#hooks#fire('ModeChange')
+  call circuit#hooks#fire('ModeChange')
 endfunction
 
 " ---------------------------------------------------------------------------
 " Model switching
 " ---------------------------------------------------------------------------
 
-function! claudeterm#set_model(model) abort
+function! circuit#set_model(model) abort
   let s:current_model = a:model
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd('--continue')
@@ -263,7 +263,7 @@ endfunction
 " Worktree
 " ---------------------------------------------------------------------------
 
-function! claudeterm#worktree(name, bang) abort
+function! circuit#worktree(name, bang) abort
   call s:kill_term_if_alive()
 
   let l:cmd = s:get('command', 'claude') . ' --worktree'
@@ -287,7 +287,7 @@ function! claudeterm#worktree(name, bang) abort
 
   call s:configure_term_window()
   call s:start_reload_timer()
-  call claudeterm#hooks#fire('Worktree')
+  call circuit#hooks#fire('Worktree')
   call s:focus_term()
 endfunction
 
@@ -295,21 +295,21 @@ endfunction
 " Verbose toggle
 " ---------------------------------------------------------------------------
 
-function! claudeterm#toggle_verbose() abort
+function! circuit#toggle_verbose() abort
   let s:verbose = !s:verbose
   call s:kill_term_if_alive()
   let l:cmd = s:build_cmd('--continue')
   call s:open_with_cmd(l:cmd)
-  echo 'claudeterm: verbose ' . (s:verbose ? 'ON' : 'OFF')
+  echo 'vim-circuit: verbose ' . (s:verbose ? 'ON' : 'OFF')
 endfunction
 
 " ---------------------------------------------------------------------------
 " Zoom
 " ---------------------------------------------------------------------------
 
-function! claudeterm#zoom() abort
+function! circuit#zoom() abort
   if !s:term_alive()
-    echo 'claudeterm: no active terminal'
+    echo 'vim-circuit: no active terminal'
     return
   endif
 
@@ -322,7 +322,7 @@ function! claudeterm#zoom() abort
   if s:is_zoomed
     let s:is_zoomed = 0
     execute s:pre_zoom_winrestcmd
-    call claudeterm#hooks#fire('ZoomOut')
+    call circuit#hooks#fire('ZoomOut')
   else
     let s:pre_zoom_winrestcmd = winrestcmd()
     let l:winnr = win_id2win(l:winid)
@@ -330,7 +330,7 @@ function! claudeterm#zoom() abort
     wincmd |
     wincmd _
     let s:is_zoomed = 1
-    call claudeterm#hooks#fire('ZoomIn')
+    call circuit#hooks#fire('ZoomIn')
   endif
 endfunction
 
@@ -338,9 +338,9 @@ endfunction
 " Send selection
 " ---------------------------------------------------------------------------
 
-function! claudeterm#send_selection() abort
+function! circuit#send_selection() abort
   if !s:term_alive()
-    echo 'claudeterm: no active terminal'
+    echo 'vim-circuit: no active terminal'
     return
   endif
 
@@ -360,14 +360,14 @@ endfunction
 " Chat (free-form prompt)
 " ---------------------------------------------------------------------------
 
-function! claudeterm#chat() abort
-  let l:msg = input('claudeterm> ')
+function! circuit#chat() abort
+  let l:msg = input('circuit> ')
   if empty(l:msg)
     return
   endif
 
   if !s:term_alive()
-    call claudeterm#toggle()
+    call circuit#toggle()
   else
     let l:winid = bufwinid(s:term_bufnr)
     if l:winid == -1
@@ -388,12 +388,12 @@ endfunction
 " Position change
 " ---------------------------------------------------------------------------
 
-function! claudeterm#set_position(pos) abort
+function! circuit#set_position(pos) abort
   if index(['right', 'left', 'top', 'bottom'], a:pos) == -1
-    echoerr 'claudeterm: invalid position "' . a:pos . '". Use right/left/top/bottom.'
+    echoerr 'vim-circuit: invalid position "' . a:pos . '". Use right/left/top/bottom.'
     return
   endif
-  let g:claudeterm_position = a:pos
+  let g:circuit_position = a:pos
   if s:term_alive() && bufwinid(s:term_bufnr) != -1
     call s:hide()
     call s:show()
@@ -404,15 +404,15 @@ endfunction
 " Doctor / Version
 " ---------------------------------------------------------------------------
 
-function! claudeterm#doctor() abort
+function! circuit#doctor() abort
   let l:cmd = s:get('command', 'claude')
   echo trim(system(l:cmd . ' doctor 2>&1'))
 endfunction
 
-function! claudeterm#version() abort
+function! circuit#version() abort
   let l:cmd = s:get('command', 'claude')
   let l:cli_ver = trim(system(l:cmd . ' --version 2>&1'))
-  echo 'vim-claudeterm: 0.1.0'
+  echo 'vim-circuit: 0.1.0'
   echo 'claude cli:     ' . l:cli_ver
   echo 'vim:            ' . v:version
   echo 'terminal:       ' . (has('terminal') ? '+terminal' : '-terminal')
@@ -449,8 +449,8 @@ function! s:reload_check(timer_id) abort
           \ && getbufvar(l:bufnr, '&buftype') ==# ''
           \ && !empty(bufname(l:bufnr))
       let l:fname = fnamemodify(bufname(l:bufnr), ':p')
-      if getftime(l:fname) > getbufvar(l:bufnr, 'claudeterm_mtime', 0)
-        call setbufvar(l:bufnr, 'claudeterm_mtime', getftime(l:fname))
+      if getftime(l:fname) > getbufvar(l:bufnr, 'circuit_mtime', 0)
+        call setbufvar(l:bufnr, 'circuit_mtime', getftime(l:fname))
         if bufloaded(l:bufnr)
           execute 'checktime ' . l:bufnr
           let l:reloaded = 1
@@ -460,9 +460,9 @@ function! s:reload_check(timer_id) abort
   endfor
   if l:reloaded
     if s:get('notify_reload', 1)
-      echohl WarningMsg | echo 'claudeterm: buffers reloaded' | echohl None
+      echohl WarningMsg | echo 'vim-circuit: buffers reloaded' | echohl None
     endif
-    call claudeterm#hooks#fire('Reload')
+    call circuit#hooks#fire('Reload')
   endif
 endfunction
 
@@ -470,7 +470,7 @@ endfunction
 " Tab-completion helper
 " ---------------------------------------------------------------------------
 
-function! claudeterm#complete(arglead, cmdline, cursorpos) abort
+function! circuit#complete(arglead, cmdline, cursorpos) abort
   let l:parts = split(a:cmdline, '\s\+')
   let l:nparts = len(l:parts)
 

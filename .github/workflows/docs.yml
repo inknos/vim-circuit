@@ -30,7 +30,7 @@ jobs:
       - name: Use help file as index
         run: |
           sudo chown -R $(id -u):$(id -g) build/
-          cp build/claudeterm.html build/index.html
+          cp build/circuit.html build/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
