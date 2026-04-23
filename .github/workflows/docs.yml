@@ -1,0 +1,29 @@
+name: Build vimdoc HTML
+
+on:
+  push:
+    branches: [main]
+    paths: ['doc/**']
+  workflow_dispatch:
+
+jobs:
+  docs:
+    name: Convert vimdoc to HTML
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate HTML from vimdoc
+        uses: tsuyoshicho/action-vimhelp-html-generate@v1
+        env:
+          FOLDER: build
+          BACKGROUND: light
+          COLORSCHEME: github
+
+      - name: Upload HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vimdoc-html
+          path: build/
+          retention-days: 90
