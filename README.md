@@ -109,8 +109,7 @@ See `:help circuit-hooks` for details.
 
 Full documentation is available via `:help circuit` after installation.
 
-HTML docs are generated from the vimdoc source and available as a CI artifact
-on the Actions tab.
+HTML docs are generated from the vimdoc source and available [here](https://inknos.github.io/vim-circuit).
 
 ## License
 
